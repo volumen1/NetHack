@@ -2760,6 +2760,20 @@ domove_core(void)
         if (escape_from_sticky_mon(x, y))
             return;
 
+        /* Multiplayer: another hero blocks the way.  Swapping places and
+           (accidental) attacks come with milestone M3. */
+        {
+            struct hero *oh = other_hero_at(x, y);
+
+            if (oh) {
+                if (!svc.context.run)
+                    You("stop.  %s is in your way.", oh->name);
+                nomul(0);
+                svc.context.move = 0;
+                return;
+            }
+        }
+
         mtmp = m_at(x, y);
         if (mtmp && !is_safemon(mtmp)) {
             /* Don't attack if you're running, and can see it */

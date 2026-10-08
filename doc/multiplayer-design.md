@@ -471,7 +471,7 @@ Each milestone should end in something that runs.
 | # | Milestone | Proves |
 |---|---|---|
 | M0 | Fork cleanup: remove other ports/platforms, build only curses on Linux. **Done** (§11.1). | Clean base. |
-| M1 | Hero indirection (§3.1). Two heroes on one level, **hot-seat** on one terminal, alternating turns. | The `cur_hero` approach works; most code runs unchanged. |
+| M1 | Hero indirection (§3.1). Two heroes on one level, **hot-seat** on one terminal, alternating turns. **Done** (§11.2). | The `cur_hero` approach works; most code runs unchanged. |
 | M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. | Several players, several screens. |
 | M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. | Multiple heroes in the same fight. |
 | M4 | Message routing v1 + location-based messages (§7.1), party panel. | Each player understands what's going on. |
@@ -497,6 +497,43 @@ Each milestone should end in something that runs.
   `sys/share/` (MSDOS, VMS, AMIGA, WIN32, TTY_GRAPHICS, and so on) and their
   headers are still there. They're inactive in our build, and get removed
   when the refactors touch those files.
+
+### 11.2 M1 notes
+
+- **Hero state.** `struct hero` (`include/decl.h`) holds `u`, the hero's
+  monster (`youmonst`), `invent` and the equipment slots (`uwep`, `uarm`,
+  ...), reached through `cur_hero` by macros with the old names. Other
+  per-hero globals (multi-turn actions, command queues, role and race,
+  spellbook, quest status, killer, player name, in-progress actions in the
+  context) are still ordinary globals; `switch_hero()` saves and restores
+  them, using the list `hero_globals[]` in `src/heroes.c`. Entries move from
+  that list into `struct hero` as later milestones touch them.
+- **Starting a hot-seat game.** Set `NETHACK_HEROES=2` (up to 6) in the
+  environment. After the first character is made, each extra player enters
+  a name and picks a character with the normal dialog; they start next to
+  the first hero, with their own pet. The lobby replaces this in M2.
+- **Turns.** Heroes take turns in table order, using the normal speed
+  system: monsters move between hero actions as they do between a fast
+  hero's extra moves, and a new world turn starts when nobody has movement
+  left. Once-per-turn upkeep is split into world work (`run_timers()`,
+  regions, sounds, storms, bubbles) and per-hero work
+  (`hero_turn_upkeep()` in `allmain.c`), which runs for every hero.
+- **Monsters** act toward the closest hero (§5.1, without stickiness yet).
+  They can't step onto another hero, and heroes block each other ("You stop.
+  Bob is in your way.").
+- **Display.** Other heroes are drawn where they stand unless the viewer is
+  blind or hallucinating (§6.1). Vision is still the current hero's only.
+- **Objects carried by a hero** may be touched while another hero is
+  current. Timers on carried objects (candles, corpses, eggs) now run as
+  the carrier, and an object's location is its carrier's position
+  (`obj_hero()`).
+- **Limits until later milestones:**
+  - Saving is refused with more than one hero (M9), and so is leaving the
+    level (M6).
+  - Any hero dying ends the game (M9).
+  - Monsters judge line of sight with the current hero's vision.
+  - A hangup save, from a dropped connection, records only the current
+    hero.
 
 ---
 

@@ -7,6 +7,7 @@
 #include "mfndpos.h"
 
 staticfn void pet_sanity_check(struct monst *, const char *);
+staticfn boolean movemon_for_closest_hero(struct monst *);
 staticfn void sanity_check_single_mon(struct monst *, boolean, const char *);
 staticfn struct obj *make_corpse(struct monst *, unsigned);
 staticfn int minliquid_core(struct monst *);
@@ -1326,13 +1327,29 @@ movemon_singlemon(struct monst *mtmp)
     return FALSE;
 }
 
+/* Multiplayer: a monster acts toward the hero closest to it, so make
+   that hero current while the monster moves.  (No stickiness or other
+   refinements yet; see doc/multiplayer-design.md, section 5.1.) */
+staticfn boolean
+movemon_for_closest_hero(struct monst *mtmp)
+{
+    struct hero *was = cur_hero;
+    boolean res;
+
+    if (hero_count() > 1 && !DEADMONSTER(mtmp) && isok(mtmp->mx, mtmp->my))
+        switch_hero(closest_hero(mtmp->mx, mtmp->my));
+    res = movemon_singlemon(mtmp);
+    switch_hero(was);
+    return res;
+}
+
 /* perform movement for all monsters */
 int
 movemon(void)
 {
     gs.somebody_can_move = FALSE;
 
-    iter_mons_safe(movemon_singlemon);
+    iter_mons_safe(movemon_for_closest_hero);
 
     if (any_light_source())
         gv.vision_full_recalc = 1; /* in case a mon moved w/ a light source */
@@ -2279,6 +2296,10 @@ mfndpos(
                     dispy = ny;
                 }
 
+                /* Multiplayer: monsters can't step onto other heroes;
+                   they only attack the hero they're after (cur_hero) */
+                if (other_hero_at(nx, ny))
+                    continue;
                 data->info[cnt] = 0;
                 if (onscary(dispx, dispy, mon)) {
                     if (!(flag & ALLOW_SSM))

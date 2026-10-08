@@ -99,7 +99,7 @@ const int shield_static[SHIELD_COUNT] = {
     S_ss1, S_ss2, S_ss3, S_ss2, S_ss1, S_ss2, S_ss4,
     S_ss1, S_ss2, S_ss3, S_ss2, S_ss1, S_ss2, S_ss4,
 };
-NEARDATA struct hero heroes[MAX_HEROES];
+NEARDATA struct hero heroes[MAX_HEROES] = { { .active = TRUE } };
 NEARDATA struct hero *cur_hero = &heroes[0];
 NEARDATA struct u_roleplay cfg_roleplay;
 NEARDATA time_t ubirthday;
@@ -1189,6 +1189,7 @@ decl_globals_init(void)
     ZERO(disp);
     ZERO(heroes);
     cur_hero = &heroes[0];
+    cur_hero->active = TRUE;
     invent = UNDEFINED_PTR;
     ZERO(cfg_roleplay);
     ZERO(ubirthday);

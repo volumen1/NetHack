@@ -18,6 +18,13 @@ To play:
 
     ./playground/nethack
 
+To play hot-seat with several heroes on one terminal (up to 6), set
+NETHACK_HEROES; each extra player names and picks a character at the
+start, and the heroes take turns:
+
+    NETHACK_HEROES=2 ./playground/nethack
+    python3 test/hotseat.py playground      # automated check of the above
+
 The upstream NetHack README follows.
 
                         - - - - - - - - - - -

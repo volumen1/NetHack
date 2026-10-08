@@ -657,10 +657,14 @@ get_obj_location(
     int locflags)
 {
     switch (obj->where) {
-    case OBJ_INVENT:
-        *xp = u.ux;
-        *yp = u.uy;
+    case OBJ_INVENT: {
+        /* Multiplayer: the hero carrying it, who may not be current */
+        struct hero *carrier = obj_hero(obj);
+
+        *xp = carrier ? carrier->you.ux : u.ux;
+        *yp = carrier ? carrier->you.uy : u.uy;
         return TRUE;
+    }
     case OBJ_FLOOR:
         *xp = obj->ox;
         *yp = obj->oy;

@@ -109,6 +109,10 @@ goodpos(
             && (mtmp != u.ustuck || !u.uswallow)
             && (!u.usteed || mtmp != u.usteed))
             return FALSE;
+        /* Multiplayer: nothing, not even the current hero, goes on top of
+           another hero */
+        if (other_hero_at(x, y))
+            return FALSE;
     }
 
     if (MON_AT(x, y) && avoid_monpos)

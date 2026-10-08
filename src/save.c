@@ -43,6 +43,11 @@ int
 dosave(void)
 {
     clear_nhwindow(WIN_MESSAGE);
+    if (hero_count() > 1) {
+        /* whole-party save and restore is milestone M9 */
+        pline("Games with more than one hero can't be saved yet.");
+        return ECMD_OK;
+    }
     if (y_n("Really save?") == 'n') {
         clear_nhwindow(WIN_MESSAGE);
         if (gm.multi > 0)

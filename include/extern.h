@@ -1204,6 +1204,20 @@ extern void reset_customcolors(void);
 extern int glyph_to_cmap(int);
 extern void maybe_shuffle_customizations(void);
 
+/* ### heroes.c ### */
+
+struct hero;
+
+extern int hero_count(void);
+extern void switch_hero(struct hero *);
+extern struct hero *other_hero_at(coordxy, coordxy);
+extern struct hero *obj_hero(struct obj *);
+extern struct hero *closest_hero(coordxy, coordxy);
+extern struct hero *next_ready_hero(void);
+extern struct hero *first_ready_hero(void);
+extern void add_extra_heroes(void);
+extern void announce_hero_turn(void);
+
 /* ### hack.c ### */
 
 extern boolean is_valid_travelpt(coordxy, coordxy);

@@ -1505,6 +1505,14 @@ goto_level(
     boolean do_fall_dmg = FALSE;
     schar prev_temperature = svl.level.flags.temperature;
 
+    /* Multiplayer: only one level can be live at a time until milestone
+       M6, so the party has to stay on the level they're on.  This also
+       stops trapdoors, level teleports and the like for now. */
+    if (hero_count() > 1) {
+        You_feel("a tug: your party can't split up yet.");
+        return;
+    }
+
     if (dunlev(newlevel) > dunlevs_in_dungeon(newlevel))
         newlevel->dlevel = dunlevs_in_dungeon(newlevel);
     if (newdungeon) {

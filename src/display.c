@@ -949,6 +949,21 @@ newsym(coordxy x, coordxy y)
     }
     lev = &levl[x][y];
 
+    /* Multiplayer: the other heroes are always shown where they stand,
+       except to a hero who is blind or hallucinating, who has to rely on
+       ordinary senses (see doc/multiplayer-design.md, section 6.1). */
+    if (!Blind && !Hallucination) {
+        struct hero *oh = other_hero_at(x, y);
+
+        if (oh) {
+            if (cansee(x, y))
+                lev->waslit = (lev->lit != 0);
+            _map_location(x, y, 0); /* remember what's under them */
+            show_glyph(x, y, oh->glyph);
+            return;
+        }
+    }
+
     /* Can physically see the location. */
     if (cansee(x, y)) {
         NhRegion *reg = visible_region_at(x, y);

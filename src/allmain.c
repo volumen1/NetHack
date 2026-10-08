@@ -21,6 +21,7 @@ staticfn void do_positionbar(void);
 staticfn void regen_pw(int);
 staticfn void regen_hp(int);
 staticfn void interrupt_multi(const char *);
+staticfn void hero_turn_upkeep(int);
 
 /*ARGSUSED*/
 void
@@ -169,6 +170,119 @@ static int mvl_abort_lev;
 static int mvl_wtcap = 0;
 static int mvl_change = 0;
 
+/* once-per-turn upkeep for the current hero; 'wtcap' is its encumbrance */
+staticfn void
+hero_turn_upkeep(int wtcap)
+{
+    if (Glib)
+        glibr();
+    nh_timeout();
+
+    if (u.ublesscnt)
+        u.ublesscnt--;
+
+    /* One possible result of prayer is healing.  Whether or
+     * not you get healed depends on your current hit points.
+     * If you are allowed to regenerate during the prayer,
+     * the end-of-prayer calculation messes up on this.
+     * Another possible result is rehumanization, which
+     * requires that encumbrance and movement rate be
+     * recalculated.
+     */
+    if (u.uinvulnerable) {
+        /* for the moment at least, you're in tiptop shape */
+        wtcap = UNENCUMBERED;
+    } else if (!Upolyd ? (u.uhp < u.uhpmax)
+               : (u.mh < u.mhmax
+                  || youmonst.data->mlet == S_EEL)) {
+        /* maybe heal */
+        regen_hp(wtcap);
+    }
+
+    /* moving around while encumbered is hard work */
+    if (wtcap > MOD_ENCUMBER && u.umoved) {
+        if (!(wtcap < EXT_ENCUMBER ? svm.moves % 30
+              : svm.moves % 10)) {
+            overexert_hp();
+        }
+    }
+
+    regen_pw(wtcap);
+
+    if (!u.uinvulnerable) {
+        if (Teleportation && !rn2(85)) {
+            coordxy old_ux = u.ux, old_uy = u.uy;
+
+            tele();
+            if (u.ux != old_ux || u.uy != old_uy) {
+                if (!next_to_u()) {
+                    check_leash(old_ux, old_uy);
+                }
+                /* clear doagain keystrokes */
+                cmdq_clear(CQ_CANNED);
+                cmdq_clear(CQ_REPEAT);
+            }
+        }
+        /* delayed change may not be valid anymore */
+        if ((mvl_change == 1 && !Polymorph)
+            || (mvl_change == 2 && u.ulycn == NON_PM))
+            mvl_change = 0;
+        if (Polymorph && !rn2(100))
+            mvl_change = 1;
+        else if (ismnum(u.ulycn) && !Upolyd
+                 && !rn2(80 - (20 * night())))
+            mvl_change = 2;
+        if (mvl_change && !Unchanging) {
+            if (gm.multi >= 0) {
+                stop_occupation();
+                if (mvl_change == 1)
+                    polyself(POLY_NOFLAGS);
+                else
+                    you_were();
+                mvl_change = 0;
+            }
+        }
+    }
+
+    if (Searching && !svl.level.flags.noautosearch
+        && gm.multi >= 0)
+        (void) dosearch0(1);
+    if (Warning)
+        warnreveal();
+    if (gw.were_changes) {
+        /* update innate intrinsics (mainly Drain_resistance) */
+        set_uasmon();
+    }
+    mkot_trap_warn();
+    gethungry();
+    age_spells();
+    exerchk();
+    invault();
+    if (u.uhave.amulet)
+        amulet();
+    if (!rn2(40 + (int) (ACURR(A_DEX) * 3)))
+        u_wipe_engr(rnd(3));
+    if (u.uevent.udemigod && !u.uinvulnerable) {
+        if (u.udg_cnt)
+            u.udg_cnt--;
+        if (!u.udg_cnt) {
+            intervene();
+            u.udg_cnt = rn1(200, 50);
+        }
+    }
+
+    /* when immobile, count is in turns */
+    if (gm.multi < 0) {
+        runmode_delay_output();
+        if (++gm.multi == 0) { /* finished yet? */
+            unmul((char *) 0);
+            /* if unmul caused a level change, take it now */
+            if (u.utotype)
+                deferred_goto();
+        }
+    }
+}
+
 void
 moveloop_core(void)
 {
@@ -198,9 +312,11 @@ moveloop_core(void)
 
     if (svc.context.move) {
         /* actual time passed */
+        struct hero *acting = cur_hero;
+
         u.umovement -= NORMAL_SPEED;
 
-        do { /* hero can't move this turn loop */
+        do { /* no hero can move this turn loop */
             encumber_msg();
 
             svc.context.mon_moving = TRUE;
@@ -211,8 +327,8 @@ moveloop_core(void)
             }
             do {
                 monscanmove = movemon();
-                if (u.umovement >= NORMAL_SPEED)
-                    break; /* it's now your turn */
+                if (first_ready_hero())
+                    break; /* it's now some hero's turn */
             } while (monscanmove);
             svc.context.mon_moving = FALSE;
 
@@ -220,9 +336,10 @@ moveloop_core(void)
                case monster actions affected burden, e.g. rehumanize */
             mvl_wtcap = near_capacity();
 
-            if (!monscanmove && u.umovement < NORMAL_SPEED) {
-                /* both hero and monsters are out of steam this round */
+            if (!monscanmove && !first_ready_hero()) {
+                /* both heroes and monsters are out of steam this round */
                 struct monst *mtmp;
+                int i;
 
                 /* set up for a new turn */
                 gw.were_changes = 0L;
@@ -239,8 +356,15 @@ moveloop_core(void)
                    monster effectively loses its first turn */
                 maybe_generate_rnd_mon();
 
-                u_calc_moveamt(mvl_wtcap);
-                settrack();
+                for (i = 0; i < MAX_HEROES; i++) {
+                    if (!heroes[i].active)
+                        continue;
+                    switch_hero(&heroes[i]);
+                    u_calc_moveamt(cur_hero == acting ? mvl_wtcap
+                                                      : near_capacity());
+                    settrack();
+                }
+                switch_hero(acting);
 
                 svm.moves++;
                 /*
@@ -269,105 +393,10 @@ moveloop_core(void)
 
                 l_nhcore_call(NHCORE_MOVELOOP_TURN);
 
-                if (Glib)
-                    glibr();
-                nh_timeout();
+                run_timers();
                 run_regions();
-
-                if (u.ublesscnt)
-                    u.ublesscnt--;
-
-                /* One possible result of prayer is healing.  Whether or
-                 * not you get healed depends on your current hit points.
-                 * If you are allowed to regenerate during the prayer,
-                 * the end-of-prayer calculation messes up on this.
-                 * Another possible result is rehumanization, which
-                 * requires that encumbrance and movement rate be
-                 * recalculated.
-                 */
-                if (u.uinvulnerable) {
-                    /* for the moment at least, you're in tiptop shape */
-                    mvl_wtcap = UNENCUMBERED;
-                } else if (!Upolyd ? (u.uhp < u.uhpmax)
-                           : (u.mh < u.mhmax
-                              || youmonst.data->mlet == S_EEL)) {
-                    /* maybe heal */
-                    regen_hp(mvl_wtcap);
-                }
-
-                /* moving around while encumbered is hard work */
-                if (mvl_wtcap > MOD_ENCUMBER && u.umoved) {
-                    if (!(mvl_wtcap < EXT_ENCUMBER ? svm.moves % 30
-                          : svm.moves % 10)) {
-                        overexert_hp();
-                    }
-                }
-
-                regen_pw(mvl_wtcap);
-
-                if (!u.uinvulnerable) {
-                    if (Teleportation && !rn2(85)) {
-                        coordxy old_ux = u.ux, old_uy = u.uy;
-
-                        tele();
-                        if (u.ux != old_ux || u.uy != old_uy) {
-                            if (!next_to_u()) {
-                                check_leash(old_ux, old_uy);
-                            }
-                            /* clear doagain keystrokes */
-                            cmdq_clear(CQ_CANNED);
-                            cmdq_clear(CQ_REPEAT);
-                        }
-                    }
-                    /* delayed change may not be valid anymore */
-                    if ((mvl_change == 1 && !Polymorph)
-                        || (mvl_change == 2 && u.ulycn == NON_PM))
-                        mvl_change = 0;
-                    if (Polymorph && !rn2(100))
-                        mvl_change = 1;
-                    else if (ismnum(u.ulycn) && !Upolyd
-                             && !rn2(80 - (20 * night())))
-                        mvl_change = 2;
-                    if (mvl_change && !Unchanging) {
-                        if (gm.multi >= 0) {
-                            stop_occupation();
-                            if (mvl_change == 1)
-                                polyself(POLY_NOFLAGS);
-                            else
-                                you_were();
-                            mvl_change = 0;
-                        }
-                    }
-                }
-
-                if (Searching && !svl.level.flags.noautosearch
-                    && gm.multi >= 0)
-                    (void) dosearch0(1);
-                if (Warning)
-                    warnreveal();
-                if (gw.were_changes) {
-                    /* update innate intrinsics (mainly Drain_resistance) */
-                    set_uasmon();
-                }
-                mkot_trap_warn();
                 dosounds();
                 do_storms();
-                gethungry();
-                age_spells();
-                exerchk();
-                invault();
-                if (u.uhave.amulet)
-                    amulet();
-                if (!rn2(40 + (int) (ACURR(A_DEX) * 3)))
-                    u_wipe_engr(rnd(3));
-                if (u.uevent.udemigod && !u.uinvulnerable) {
-                    if (u.udg_cnt)
-                        u.udg_cnt--;
-                    if (!u.udg_cnt) {
-                        intervene();
-                        u.udg_cnt = rn1(200, 50);
-                    }
-                }
 /* XXX This should be recoded to use something like regions - a list of
  * things that are active and need to be handled that is dynamically
  * maintained and not a list of special cases. */
@@ -377,18 +406,17 @@ moveloop_core(void)
                 else if (svl.level.flags.fumaroles)
                     fumaroles();
 
-                /* when immobile, count is in turns */
-                if (gm.multi < 0) {
-                    runmode_delay_output();
-                    if (++gm.multi == 0) { /* finished yet? */
-                        unmul((char *) 0);
-                        /* if unmul caused a level change, take it now */
-                        if (u.utotype)
-                            deferred_goto();
-                    }
+                /* once-per-turn things for each hero */
+                for (i = 0; i < MAX_HEROES; i++) {
+                    if (!heroes[i].active)
+                        continue;
+                    switch_hero(&heroes[i]);
+                    hero_turn_upkeep(cur_hero == acting ? mvl_wtcap
+                                                        : near_capacity());
                 }
+                switch_hero(acting);
             }
-        } while (u.umovement < NORMAL_SPEED); /* hero can't move */
+        } while (!first_ready_hero()); /* no hero can move */
 
         /******************************************/
         /* once-per-hero-took-time things go here */
@@ -435,6 +463,16 @@ moveloop_core(void)
             under_ground(0);
 
         see_nearby_monsters();
+
+        /* hot-seat: hand the keyboard to the next hero with a move left */
+        {
+            struct hero *next = next_ready_hero();
+
+            if (next && next != cur_hero) {
+                switch_hero(next);
+                announce_hero_turn();
+            }
+        }
     } /* actual time passed */
 
     /****************************************/
@@ -870,6 +908,8 @@ newgame(void)
         read_wizkit();
         obj_delivery(FALSE); /* finish wizkit */
     }
+
+    add_extra_heroes(); /* hot-seat players 2..N, if any */
 
     if (flags.legacy) {
         com_pager(u.uroleplay.pauper ? "pauper_legacy" : "legacy");

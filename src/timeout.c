@@ -943,8 +943,7 @@ nh_timeout(void)
                 break;
             }
         }
-
-    run_timers();
+    /* run_timers() for the level is called separately, once per turn */
 }
 
 void
@@ -2232,9 +2231,19 @@ run_timers(void)
         curr = gt.timer_base;
         gt.timer_base = curr->next;
 
-        if (curr->kind == TIMER_OBJECT)
+        if (curr->kind == TIMER_OBJECT) {
+            struct hero *carrier, *was = cur_hero;
+
             (curr->arg.a_obj)->timed--;
-        (*timeout_funcs[curr->func_index].f)(&curr->arg, curr->timeout);
+            /* Multiplayer: an object carried by a hero is handled as that
+               hero, since the code reaches it through 'invent' */
+            carrier = obj_hero(curr->arg.a_obj);
+            switch_hero(carrier);
+            (*timeout_funcs[curr->func_index].f)(&curr->arg, curr->timeout);
+            switch_hero(was);
+        } else {
+            (*timeout_funcs[curr->func_index].f)(&curr->arg, curr->timeout);
+        }
         (void) memset((genericptr_t) curr, 0, sizeof(timer_element));
         free((genericptr_t) curr);
     }

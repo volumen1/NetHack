@@ -101,6 +101,11 @@ extern const int shield_static[];
 #define MAX_HEROES 6
 
 struct hero {
+    boolean active;          /* this slot holds a hero in the game */
+    char name[PL_NSIZ];      /* player's name for this hero */
+    int glyph;               /* how this hero looks to the other heroes */
+    genericptr_t stash;      /* per-hero globals while not current;
+                              * see hero_globals[] in heroes.c */
     struct you you;          /* formerly the global 'u' */
     struct monst mon;        /* formerly gy.youmonst */
     struct obj *inv;         /* formerly gi.invent */

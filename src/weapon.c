@@ -405,7 +405,7 @@ special_dmgval(
         }
 
     /* when no gloves we check for silver rings (blessed rings ignored) */
-    } else if ((left_ring || right_ring) && magr == &gy.youmonst) {
+    } else if ((left_ring || right_ring) && magr == &youmonst) {
         if (left_ring && uleft) {
             if (objects[uleft->otyp].oc_material == SILVER
                 && mon_hates_silver(mdef)) {
@@ -1748,7 +1748,7 @@ skill_init(const struct def_skill *class_skill)
     }
 
     /* Set skill for all weapons in inventory to be basic */
-    for (obj = gi.invent; obj; obj = obj->nobj) {
+    for (obj = invent; obj; obj = obj->nobj) {
         /* don't give skill just because of carried ammo, wait until
            we see the relevant launcher (prevents an archeologist's
            touchstone from inadvertently providing skill in sling) */

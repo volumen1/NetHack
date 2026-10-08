@@ -327,7 +327,7 @@ savegamestate(NHFILE *nhfp)
 
     /* when FREEING, deletes objects in invent and sets invent to Null;
        pointers into invent (uwep, uarmg, uamul, &c) are set to Null too */
-    saveobjchn(nhfp, &gi.invent);
+    saveobjchn(nhfp, &invent);
 
     /* save ball and chain if they happen to be in an unusual state */
     save_bc(nhfp);
@@ -799,7 +799,7 @@ saveobjchn(NHFILE *nhfp, struct obj **obj_p)
 {
     struct obj *otmp = *obj_p;
     struct obj *otmp2;
-    boolean is_invent = (otmp && otmp == gi.invent);
+    boolean is_invent = (otmp && otmp == invent);
     int minusone = -1;
 
     while (otmp) {
@@ -1151,7 +1151,7 @@ freedynamicdata(void)
     free_killers();
     free_timers(RANGE_GLOBAL);
     free_light_sources(RANGE_GLOBAL);
-    freeobjchn(gi.invent);
+    freeobjchn(invent);
     freeobjchn(gm.migrating_objs);
     freemonchn(gm.migrating_mons);
     freemonchn(gm.mydogs); /* ascension or dungeon escape */

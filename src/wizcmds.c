@@ -894,7 +894,7 @@ wiz_smell(void)
 
     cc.x = u.ux;
     cc.y = u.uy;
-    if (!olfaction(gy.youmonst.data)) {
+    if (!olfaction(youmonst.data)) {
         You("are incapable of detecting odors in your present form.");
         return ECMD_OK;
     }
@@ -911,7 +911,7 @@ wiz_smell(void)
             if (u.usteed) {
                 mptr = u.usteed->data;
             } else {
-                mptr = gy.youmonst.data;
+                mptr = youmonst.data;
                 is_you = TRUE;
             }
         } else if ((mtmp = m_at(cc.x, cc.y)) != (struct monst *) 0) {
@@ -1207,7 +1207,7 @@ contained_stats(
     long count = 0, size = 0;
     struct monst *mon;
 
-    count_obj(gi.invent, &count, &size, FALSE, TRUE);
+    count_obj(invent, &count, &size, FALSE, TRUE);
     count_obj(fobj, &count, &size, FALSE, TRUE);
     count_obj(svl.level.buriedobjlist, &count, &size, FALSE, TRUE);
     count_obj(gm.migrating_objs, &count, &size, FALSE, TRUE);
@@ -1631,7 +1631,7 @@ wiz_show_stats(void)
     putstr(win, 0, stats_hdr);
     Sprintf(buf, "  Objects, base size %ld", (long) sizeof (struct obj));
     putstr(win, 0, buf);
-    obj_chain(win, "invent", gi.invent, TRUE,
+    obj_chain(win, "invent", invent, TRUE,
               &total_obj_count, &total_obj_size);
     obj_chain(win, "fobj", fobj, TRUE, &total_obj_count, &total_obj_size);
     obj_chain(win, "buried", svl.level.buriedobjlist, FALSE,
@@ -2000,7 +2000,7 @@ wizcustom_callback(winid win, int glyphnum, char *id)
         cgm = &glyphmap[glyphnum];
         if (
 #ifdef ENHANCED_SYMBOLS
-            cgm->u ||
+            cgm->uni ||
 #endif
             cgm->customcolor != 0) {
             if (iflags.menu_tab_sep) {
@@ -2016,11 +2016,11 @@ wizcustom_callback(winid win, int glyphnum, char *id)
             }
             bufu[0] = '\0';
 #ifdef ENHANCED_SYMBOLS
-            if (cgm->u && cgm->u->utf8str) {
+            if (cgm->uni && cgm->uni->utf8str) {
                 uint8 *cp;
                 char sep = iflags.menu_tab_sep ? '\t' : ' ';
-                Sprintf(bufu, "U+%04lx", (unsigned long) cgm->u->utf32ch);
-                cp = cgm->u->utf8str;
+                Sprintf(bufu, "U+%04lx", (unsigned long) cgm->uni->utf32ch);
+                cp = cgm->uni->utf8str;
                 while (*cp) {
                     char bufd[BUFSZ];
                     Sprintf(bufd, "%c<%d>", sep, (int) *cp);

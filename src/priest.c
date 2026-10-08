@@ -609,7 +609,7 @@ priest_talk(struct monst *priest)
         priest->mpeaceful = 0;
         return;
     }
-    if (!money_cnt(gi.invent)) {
+    if (!money_cnt(invent)) {
         if (coaligned && !strayed) {
             long pmoney = money_cnt(priest->minvent);
             if (pmoney > 0L) {
@@ -636,7 +636,7 @@ priest_talk(struct monst *priest)
         long offer;
         long suggested = (u.ulevelpeak ? u.ulevelpeak : 1 ) *
             rn1(101, 150 + (cheapskate ? *cheapskate : 0) * 40);
-        long quan = money_cnt(gi.invent) / (suggested * 3);
+        long quan = money_cnt(invent) / (suggested * 3);
         char buf[BUFSZ];
 
         if (quan < 1)
@@ -658,7 +658,7 @@ priest_talk(struct monst *priest)
                 adjalign(-1);
             if (cheapskate) ++*cheapskate;
         } else if (offer < suggested * quan) {
-            if (money_cnt(gi.invent) > (offer * 2L)) {
+            if (money_cnt(invent) > (offer * 2L)) {
                 SetVoice(priest, 0, 80, 0);
                 verbalize("Cheapskate.");
                 if (cheapskate) ++*cheapskate;
@@ -671,7 +671,7 @@ priest_talk(struct monst *priest)
         } else if (offer < suggested * quan * 2) {
             SetVoice(priest, 0, 80, 0);
             verbalize("Thou art indeed a pious individual.");
-            if (money_cnt(gi.invent) < (offer * 2L)) {
+            if (money_cnt(invent) < (offer * 2L)) {
                 if (coaligned && u.ualign.record <= ALGN_SINNED)
                     adjalign(1);
             }
@@ -708,7 +708,7 @@ priest_talk(struct monst *priest)
             verbalize("Thy selfless generosity is deeply appreciated.");
             /* money_cnt check is preserved for futureproofing but probably
                can't fail in the current code */
-            if (money_cnt(gi.invent) < (offer * 2L) && coaligned) {
+            if (money_cnt(invent) < (offer * 2L) && coaligned) {
                 if (strayed && (svm.moves - u.ucleansed) > 5000L) {
                     u.ualign.record = 0; /* cleanse thee */
                     u.ucleansed = svm.moves;

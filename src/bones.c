@@ -271,7 +271,7 @@ drop_upon_death(
     /* all inventory is dropped (for the normal case), even non-droppable
        things like worn armor and accessories, welded weapon, or cursed
        loadstones */
-    while ((otmp = gi.invent) != 0) {
+    while ((otmp = invent) != 0) {
         obj_extract_self(otmp);
         /* when turning into green slime, all gear remains held;
            other types "arise from the dead" do aren't holding
@@ -452,7 +452,7 @@ savebones(int how, time_t when, struct obj *corpse)
     for (f = gf.ffruit; f; f = f->nextf)
         f->fid = -f->fid;
 
-    set_ghostly_objlist(gi.invent);
+    set_ghostly_objlist(invent);
     /* dispose of your possessions, usually cursed */
     if (ismnum(u.ugrave_arise)) {
         /* give your possessions to the monster you become */

@@ -739,8 +739,8 @@ apply_customizations(
                         gmap = &glyphmap[details->content.urep.glyphidx];
                         if (gs.symset[which_set].handling == H_UTF8)
                             (void) set_map_u(gmap,
-                                             details->content.urep.u.utf32ch,
-                                             details->content.urep.u.utf8str);
+                                             details->content.urep.uni.utf32ch,
+                                             details->content.urep.uni.utf8str);
                     }
                 }
 #endif
@@ -808,20 +808,20 @@ shuffle_customizations(void)
                                         dupstr((const char *) other->utf8str);
                 }
             } else {
-                tmp_u[i] = obj_glyphs[idx].u;
-                if (obj_glyphs[idx].u != NULL)  {
+                tmp_u[i] = obj_glyphs[idx].uni;
+                if (obj_glyphs[idx].uni != NULL)  {
                     duplicate[idx] = i;
-                    obj_glyphs[idx].u = NULL;
+                    obj_glyphs[idx].uni = NULL;
                 }
             }
         }
         for (i = 0; i < NUM_OBJECTS; i++) {
             /* Some glyphmaps may not have been transferred */
-            if (obj_glyphs[i].u != NULL) {
-                free(obj_glyphs[i].u->utf8str);
-                free(obj_glyphs[i].u);
+            if (obj_glyphs[i].uni != NULL) {
+                free(obj_glyphs[i].uni->utf8str);
+                free(obj_glyphs[i].uni);
             }
-            obj_glyphs[i].u = tmp_u[i];
+            obj_glyphs[i].uni = tmp_u[i];
         }
     }
 }
@@ -885,16 +885,16 @@ shuffle_customizations(void)
                 tmp_customcolor[i] = obj_glyphs[idx].customcolor;
                 tmp_color256idx[i] = obj_glyphs[idx].color256idx;
 #ifdef ENHANCED_SYMBOLS
-                tmp_u[i] = obj_glyphs[idx].u;
+                tmp_u[i] = obj_glyphs[idx].uni;
 #endif
                 if (
 #ifdef ENHANCED_SYMBOLS
-                    obj_glyphs[idx].u != NULL ||
+                    obj_glyphs[idx].uni != NULL ||
 #endif
                     obj_glyphs[idx].customcolor != 0) {
                     duplicate[idx] = i;
 #ifdef ENHANCED_SYMBOLS
-                    obj_glyphs[idx].u = NULL;
+                    obj_glyphs[idx].uni = NULL;
 #endif
                     obj_glyphs[idx].customcolor = 0;
                     obj_glyphs[idx].color256idx = 0;
@@ -904,11 +904,11 @@ shuffle_customizations(void)
         for (i = 0; i < NUM_OBJECTS; i++) {
             /* Some glyphmaps may not have been transferred */
 #ifdef ENHANCED_SYMBOLS
-            if (obj_glyphs[i].u != NULL) {
-                free(obj_glyphs[i].u->utf8str);
-                free(obj_glyphs[i].u);
+            if (obj_glyphs[i].uni != NULL) {
+                free(obj_glyphs[i].uni->utf8str);
+                free(obj_glyphs[i].uni);
             }
-            obj_glyphs[i].u = tmp_u[i];
+            obj_glyphs[i].uni = tmp_u[i];
 #endif
             obj_glyphs[i].customcolor = tmp_customcolor[i];
             obj_glyphs[i].color256idx = tmp_color256idx[i];
@@ -955,9 +955,9 @@ purge_custom_entries(enum graphics_sets which_set)
         while (details) {
             next = details->next;
             if (gdc->custtype == custom_ureps) {
-                if (details->content.urep.u.utf8str)
-                    free(details->content.urep.u.utf8str);
-                details->content.urep.u.utf8str = (uint8 *) 0;
+                if (details->content.urep.uni.utf8str)
+                    free(details->content.urep.uni.utf8str);
+                details->content.urep.uni.utf8str = (uint8 *) 0;
             } else if (gdc->custtype == custom_symbols) {
                 details->content.sym.symparse = (struct symparse *) 0;
                 details->content.sym.val = 0;

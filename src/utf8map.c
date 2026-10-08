@@ -41,17 +41,17 @@ set_map_u(glyph_map *gmap, uint32 utf32ch, const uint8 *utf8str)
     if (!tmpgm || !utf32ch)
         return 0;
 
-    if (gmap->u == 0) {
-        gmap->u =
-            (struct unicode_representation *) alloc(sizeof *gmap->u);
-        gmap->u->utf8str = 0;
+    if (gmap->uni == 0) {
+        gmap->uni =
+            (struct unicode_representation *) alloc(sizeof *gmap->uni);
+        gmap->uni->utf8str = 0;
     }
-    if (gmap->u->utf8str != 0) {
-        free(gmap->u->utf8str);
-        gmap->u->utf8str = 0;
+    if (gmap->uni->utf8str != 0) {
+        free(gmap->uni->utf8str);
+        gmap->uni->utf8str = 0;
     }
-    gmap->u->utf8str = (uint8 *) dupstr((const char *) utf8str);
-    gmap->u->utf32ch = utf32ch;
+    gmap->uni->utf8str = (uint8 *) dupstr((const char *) utf8str);
+    gmap->uni->utf32ch = utf32ch;
     return 1;
 }
 
@@ -62,19 +62,19 @@ free_all_glyphmap_u(void)
     int x, y;
 
     for (glyph = 0; glyph < MAX_GLYPH; ++glyph) {
-        if (glyphmap[glyph].u) {
-            if (glyphmap[glyph].u->utf8str) {
-                free(glyphmap[glyph].u->utf8str);
-                glyphmap[glyph].u->utf8str = 0;
+        if (glyphmap[glyph].uni) {
+            if (glyphmap[glyph].uni->utf8str) {
+                free(glyphmap[glyph].uni->utf8str);
+                glyphmap[glyph].uni->utf8str = 0;
             }
-            free(glyphmap[glyph].u);
-            glyphmap[glyph].u = 0;
+            free(glyphmap[glyph].uni);
+            glyphmap[glyph].uni = 0;
         }
     }
     /* Prevent use after free from gg.gbuf */
     for (y = 0; y < ROWNO; ++y) {
         for (x = 0; x < COLNO; ++x) {
-            gg.gbuf[y][x].glyphinfo.gm.u = NULL;
+            gg.gbuf[y][x].glyphinfo.gm.uni = NULL;
         }
     }
 }
@@ -102,8 +102,8 @@ mixed_to_utf8(char *buf, size_t bufsz, const char *str, int *retflags)
                 if ((dcount = decode_glyph(str + 1, &ggv))) {
                     str += (dcount + 1);
                     map_glyphinfo(0, 0, ggv, 0, &glyphinfo);
-                    if (glyphinfo.gm.u && glyphinfo.gm.u->utf8str) {
-                        uint8 *ucp = glyphinfo.gm.u->utf8str;
+                    if (glyphinfo.gm.uni && glyphinfo.gm.uni->utf8str) {
+                        uint8 *ucp = glyphinfo.gm.uni->utf8str;
 
                         while (*ucp && put < (buf + bufsz) - 1)
                             *put++ = *ucp++;
@@ -168,15 +168,15 @@ add_custom_urep_entry(
     if (details) {
         while (details) {
             if (details->content.urep.glyphidx == glyphidx) {
-                if (details->content.urep.u.utf8str)
-                    free(details->content.urep.u.utf8str);
+                if (details->content.urep.uni.utf8str)
+                    free(details->content.urep.uni.utf8str);
                 if (utf32ch) {
-                    details->content.urep.u.utf8str =
+                    details->content.urep.uni.utf8str =
                         (uint8 *) dupstr((const char *) utf8str);
-                    details->content.urep.u.utf32ch = utf32ch;
+                    details->content.urep.uni.utf32ch = utf32ch;
                 } else {
-                    details->content.urep.u.utf8str = (uint8 *) 0;
-                    details->content.urep.u.utf32ch = 0;
+                    details->content.urep.uni.utf8str = (uint8 *) 0;
+                    details->content.urep.uni.utf32ch = 0;
                 }
                 return 1;
             }
@@ -188,13 +188,13 @@ add_custom_urep_entry(
                                         sizeof (struct customization_detail));
     newdetails->content.urep.glyphidx = glyphidx;
     if (utf8str && *utf8str) {
-        newdetails->content.urep.u.utf8str =
+        newdetails->content.urep.uni.utf8str =
             (uint8 *) dupstr((const char *) utf8str);
     } else {
-        newdetails->content.urep.u.utf8str =
+        newdetails->content.urep.uni.utf8str =
             (uint8 *) 0;
     }
-    newdetails->content.urep.u.utf32ch = utf32ch;
+    newdetails->content.urep.uni.utf32ch = utf32ch;
     newdetails->next = (struct customization_detail *) 0;
     if (gdc->details == NULL) {
         gdc->details = newdetails;

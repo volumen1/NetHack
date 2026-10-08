@@ -99,15 +99,11 @@ const int shield_static[SHIELD_COUNT] = {
     S_ss1, S_ss2, S_ss3, S_ss2, S_ss1, S_ss2, S_ss4,
     S_ss1, S_ss2, S_ss3, S_ss2, S_ss1, S_ss2, S_ss4,
 };
-NEARDATA struct you u;
+NEARDATA struct hero heroes[MAX_HEROES];
+NEARDATA struct hero *cur_hero = &heroes[0];
+NEARDATA struct u_roleplay cfg_roleplay;
 NEARDATA time_t ubirthday;
 NEARDATA struct u_realtime urealtime;
-NEARDATA struct obj *uwep, *uarm, *uswapwep,
-    *uquiver, /* quiver */
-    *uarmu, /* under-wear, so to speak */
-    *uskin, /* dragon armor, if a dragon */
-    *uarmc, *uarmh, *uarms, *uarmg,*uarmf, *uamul,
-    *uright, *uleft, *ublindf, *uchain, *uball;
 const char vowels[] = "aeiouAEIOU";
 NEARDATA winid WIN_MESSAGE, WIN_STATUS, WIN_MAP, WIN_INVEN;
 const char ynchars[] = "yn";
@@ -410,7 +406,6 @@ static const struct instance_globals_i g_init_i = {
     0, /* in_doagain */
     FALSE, /* in_mklev */
     FALSE, /* in_steed_dismounting */
-    UNDEFINED_PTR, /* invent */
     /* do_wear.c */
     FALSE, /* initial_don */
     /* invent.c */
@@ -851,7 +846,6 @@ static const struct instance_globals_x g_init_x = {
 static const struct instance_globals_y g_init_y = {
     /* decl.c */
     (ROWNO - 1) & ~1, /* y_maze_max */
-    DUMMY, /* youmonst */
     /* pline.c */
     NULL, /* you_buf */
     0, /* you_buf_siz */
@@ -1193,13 +1187,12 @@ decl_globals_init(void)
     ZERO(iflags);
     ZERO(a11y);
     ZERO(disp);
-    ZERO(u);
+    ZERO(heroes);
+    cur_hero = &heroes[0];
+    invent = UNDEFINED_PTR;
+    ZERO(cfg_roleplay);
     ZERO(ubirthday);
     ZERO(urealtime);
-
-    uwep = uarm = uswapwep = uquiver = uarmu = uskin = uarmc = NULL;
-    uarmh = uarms = uarmg = uarmf = uamul = uright = uleft = NULL;
-    ublindf = uchain = uball = NULL;
 
     WIN_MESSAGE =  WIN_STATUS =  WIN_MAP = WIN_INVEN = WIN_ERR;
 

@@ -30,7 +30,7 @@ explosionmask(
 {
     int res = EXPL_NONE;
 
-    if (m == &gy.youmonst) {
+    if (m == &youmonst) {
         switch (adtyp) {
         case AD_PHYS:
             /* leave 'res' with EXPL_NONE */
@@ -274,7 +274,7 @@ explode(
        so might get hit by double damage */
     grabbed = grabbing = FALSE;
     if (u.ustuck && !u.uswallow) {
-        if (Upolyd && sticks(gy.youmonst.data))
+        if (Upolyd && sticks(youmonst.data))
             grabbing = TRUE;
         else
             grabbed = TRUE;
@@ -363,7 +363,7 @@ explode(
             explmask[i][j] = EXPL_NONE;
 
             if (u_at(xx, yy)) {
-                explmask[i][j] = explosionmask(&gy.youmonst, adtyp, olet);
+                explmask[i][j] = explosionmask(&youmonst, adtyp, olet);
             }
             /* can be both you and mtmp if you're swallowed or riding */
             mtmp = m_at(xx, yy);
@@ -611,10 +611,10 @@ explode(
         } else if (adtyp == AD_PHYS || adtyp == AD_ACID)
             damu = Maybe_Half_Phys(damu);
         if (adtyp == AD_FIRE) {
-            (void) burnarmor(&gy.youmonst);
-            ignite_items(gi.invent);
+            (void) burnarmor(&youmonst);
+            ignite_items(invent);
         }
-        (void) destroy_items(&gy.youmonst, (int) adtyp, dam);
+        (void) destroy_items(&youmonst, (int) adtyp, dam);
 
         ugolemeffects((int) adtyp, damu);
         if (uhurt == 2) {
@@ -873,9 +873,9 @@ scatter(
 
                         if (gm.multi)
                             nomul(0);
-                        dam = dmgval(stmp->obj, &gy.youmonst);
+                        dam = dmgval(stmp->obj, &youmonst);
                         hitvalu = 8 + stmp->obj->spe;
-                        if (bigmonst(gy.youmonst.data))
+                        if (bigmonst(youmonst.data))
                             hitvalu++;
                         hitu = thitu(hitvalu, Maybe_Half_Phys(dam),
                                      &stmp->obj, (char *) 0);
@@ -940,8 +940,8 @@ scatter(
         newsym(x, y);
     }
     newsym(sx, sy);
-    if (u_at(sx, sy) && u.uundetected && hides_under(gy.youmonst.data))
-        (void) hideunder(&gy.youmonst);
+    if (u_at(sx, sy) && u.uundetected && hides_under(youmonst.data))
+        (void) hideunder(&youmonst);
     if (((mtmp = m_at(sx, sy)) != 0) && mtmp->mtrapped)
         mtmp->mtrapped = 0;
     maybe_unhide_at(sx, sy);

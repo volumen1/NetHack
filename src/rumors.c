@@ -702,7 +702,7 @@ doconsult(struct monst *oracl)
     char qbuf[QBUFSZ];
 
     gm.multi = 0;
-    umoney = money_cnt(gi.invent);
+    umoney = money_cnt(invent);
 
     if (!oracl) {
         There("is no one here to consult.");

@@ -1262,7 +1262,7 @@ extern int max_capacity(void);
 extern boolean check_capacity(const char *);
 extern void dump_weights(void);
 extern int inv_cnt(boolean);
-/* sometimes money_cnt(gi.invent) which can be null */
+/* sometimes money_cnt(invent) which can be null */
 extern long money_cnt(struct obj *) NO_NNARGS;
 extern void spot_checks(coordxy, coordxy, schar);
 extern int rounddiv(long, int);
@@ -1328,7 +1328,7 @@ extern struct obj *addinv_before(struct obj *, struct obj *) NONNULLARG1;
 extern struct obj *addinv_nomerge(struct obj *) NONNULLARG1;
 extern struct obj *hold_another_object(struct obj *, const char *,
                                        const char *, const char *) NONNULLARG1;
-/* nhlua.c calls useupall(gi.invent), but checks gi.invent against NULL
+/* nhlua.c calls useupall(invent), but checks invent against NULL
  * before doing so. useupall() won't handle NULL*/
 extern void useupall(struct obj *) NONNULLARG1;
 extern void useup(struct obj *) NONNULLARG1;
@@ -1394,7 +1394,7 @@ extern boolean check_invent_gold(const char *) NONNULLARG1;
 extern int doorganize(void);
 extern int adjust_split(void);
 extern void free_pickinv_cache(void);
-/* sometimes count_unpaid(gi.invent) which can be null */
+/* sometimes count_unpaid(invent) which can be null */
 extern int count_unpaid(struct obj *) NO_NNARGS;
 extern int count_buc(struct obj *, int, boolean(*)(struct obj *));
 extern void tally_BUCX(struct obj *, boolean, int *, int *, int *, int *,
@@ -2462,12 +2462,12 @@ extern boolean allow_category(struct obj *) NONNULLARG1;
 extern boolean is_worn_by_type(struct obj *) NONNULLARG1;
 extern int ck_bag(struct obj *) NONNULLARG1;
 extern void removed_from_icebox(struct obj *) NONNULLARG1;
-/* reset_justpicked() is sometimes passed gi.invent
+/* reset_justpicked() is sometimes passed invent
  * which can be null */
 extern void reset_justpicked(struct obj *) NO_NNARGS;
-/* sometimes count_justpicked(gi.invent) which can be null */
+/* sometimes count_justpicked(invent) which can be null */
 extern int count_justpicked(struct obj *) NO_NNARGS;
-/* sometimes find_justpicked(gi.invent) which can be null */
+/* sometimes find_justpicked(invent) which can be null */
 extern struct obj *find_justpicked(struct obj *) NO_NNARGS;
 extern int pickup(int);
 extern int pickup_object(struct obj *, long, boolean) NONNULLARG1;
@@ -3982,7 +3982,7 @@ extern struct obj *which_armor(struct monst *, long) NONNULLARG1;
 extern void mon_break_armor(struct monst *, boolean) NONNULLARG1;
 extern void bypass_obj(struct obj *) NONNULLARG1;
 extern void clear_bypasses(void);
-/* callers don't check gi.invent before passing to bypass_objlist */
+/* callers don't check invent before passing to bypass_objlist */
 extern void bypass_objlist(struct obj *, boolean) NO_NNARGS;
 extern struct obj *nxt_unbypassed_obj(struct obj *) NO_NNARGS;
 extern struct obj *nxt_unbypassed_loot(Loot *, struct obj *) NONNULLARG1;

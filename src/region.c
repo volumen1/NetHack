@@ -1092,7 +1092,7 @@ inside_gas_cloud(genericptr_t p1, genericptr_t p2)
 {
     NhRegion *reg = (NhRegion *) p1;
     struct monst *mtmp = (struct monst *) p2;
-    struct monst *umon = mtmp ? mtmp : &gy.youmonst;
+    struct monst *umon = mtmp ? mtmp : &youmonst;
     int dam = reg->arg.a_int;
 
     /*
@@ -1108,7 +1108,7 @@ inside_gas_cloud(genericptr_t p1, genericptr_t p2)
         return FALSE; /* if no damage then there's nothing to do here... */
 
     if (!mtmp) { /* hero is indicated by Null rather than by &youmonst */
-        if (m_poisongas_ok(&gy.youmonst) == M_POISONGAS_OK)
+        if (m_poisongas_ok(&youmonst) == M_POISONGAS_OK)
             return FALSE;
         if (!Blind) {
             Your("%s sting.", makeplural(body_part(EYE)));
@@ -1232,7 +1232,7 @@ create_gas_cloud(
        probably a natural cause of being polyed. don't message about it */
     if (!svc.context.mon_moving && u_at(x, y) && cloudsize == 1
         && (!damage
-            || (damage && m_poisongas_ok(&gy.youmonst) == M_POISONGAS_OK)))
+            || (damage && m_poisongas_ok(&youmonst) == M_POISONGAS_OK)))
         inside_cloud = TRUE;
 
     if (cloudsize > MAX_CLOUD_SIZE) {
@@ -1350,7 +1350,7 @@ region_danger(void)
         /* the only type of region we understand is gas_cloud */
         if (f_indx == INSIDE_GAS_CLOUD) {
             /* completely harmless if you don't need to breathe */
-            if (nonliving(gy.youmonst.data) || Breathless)
+            if (nonliving(youmonst.data) || Breathless)
                 continue;
             /* minor inconvenience if you're poison resistant;
                not harmful enough to be a prayer-level trouble */

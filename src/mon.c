@@ -330,7 +330,7 @@ int
 m_poisongas_ok(struct monst *mtmp)
 {
     int px, py;
-    boolean is_you = (mtmp == &gy.youmonst);
+    boolean is_you = (mtmp == &youmonst);
 
     /* Non living, non breathing, immune monsters are not concerned */
     if (nonliving(mtmp->data) || is_vampshifter(mtmp)
@@ -2109,8 +2109,8 @@ mon_allowflags(struct monst *mtmp)
     if (passes_bars(mtmp->data)
         /* restrict engulfer or holder who might try to pass iron bars while
            carrying hero; accept small subset for poly'd hero passes_bars() */
-        && (mtmp != u.ustuck || (unsolid(gy.youmonst.data)
-                                 || verysmall(gy.youmonst.data))))
+        && (mtmp != u.ustuck || (unsolid(youmonst.data)
+                                 || verysmall(youmonst.data))))
         allowflags |= ALLOW_BARS;
 #if 0   /* can't do this here; leave it for mfndpos() */
     if (is_displacer(mtmp->data))
@@ -3214,7 +3214,7 @@ corpse_chance(
             if (was_swallowed && magr) {
                 /* mdef is a gas spore (AT_BOOM) that is exploding inside an
                    engulfer; suppress usual explosion since it's contained */
-                if (magr == &gy.youmonst) {
+                if (magr == &youmonst) {
                     There("is an explosion in your %s!", body_part(STOMACH));
                     Sprintf(svk.killer.name, "%s explosion",
                             s_suffix(pmname(mdat, Mgender(mon))));
@@ -3624,7 +3624,7 @@ xkilled(
         /* corpse--none if hero was inside the monster */
         if (!wasinside && corpse_chance(mtmp, (struct monst *) 0, FALSE)) {
             gz.zombify = (!gt.thrownobj && !gs.stoned && !uwep
-                         && zombie_maker(&gy.youmonst)
+                         && zombie_maker(&youmonst)
                          && zombie_form(mtmp->data) != NON_PM);
             cadaver = make_corpse(mtmp, burycorpse ? CORPSTAT_BURIED
                                                    : CORPSTAT_NONE);
@@ -4604,7 +4604,7 @@ get_iter_mons_xy(
 int
 healmon(struct monst *mtmp, int amt, int overheal)
 {
-    if (mtmp == &gy.youmonst) {
+    if (mtmp == &youmonst) {
         int oldhp = Upolyd ? u.mh : u.uhp;
         healup(amt, 0, 0, 0);
         return (Upolyd ? u.mh : u.uhp) - oldhp;
@@ -4713,7 +4713,7 @@ maybe_unhide_at(coordxy x, coordxy y)
         undetected = mtmp->mundetected;
         trapped = mtmp->mtrapped;
     } else if (u_at(x, y)) {
-        mtmp = &gy.youmonst;
+        mtmp = &youmonst;
         undetected = u.uundetected;
         trapped = u.utrap;
     } else {
@@ -4739,7 +4739,7 @@ hideunder(struct monst *mtmp)
     const char *seenmon = (char *) 0, *seenobj = (char *) 0,
                *locomo = (char *) 0;
     int seeit = gi.in_mklev ? 0 : canseemon(mtmp);
-    boolean oldundetctd, undetected = FALSE, is_u = (mtmp == &gy.youmonst);
+    boolean oldundetctd, undetected = FALSE, is_u = (mtmp == &youmonst);
     coordxy x = is_u ? u.ux : mtmp->mx, y = is_u ? u.uy : mtmp->my;
 
     if (mtmp == u.ustuck) {
@@ -5446,7 +5446,7 @@ newcham(
                 /* update swallow glyphs for new monster */
                 swallowed(0);
             }
-        } else if ((!sticks(mdat) && !sticks(gy.youmonst.data))
+        } else if ((!sticks(mdat) && !sticks(youmonst.data))
                    /* sticky hero can't continue to hold mtmp if it has
                       turned into a non-solid creature; we don't use
                       uunstick() for that because its message would be
@@ -5743,7 +5743,7 @@ kill_genocided_monsters(void)
             kill_eggs(mtmp->minvent);
     }
 
-    kill_eggs(gi.invent);
+    kill_eggs(invent);
     kill_eggs(fobj);
     kill_eggs(gm.migrating_objs);
     kill_eggs(svl.level.buriedobjlist);
@@ -5873,7 +5873,7 @@ usmellmon(struct permonst *mdat)
     boolean msg_given = FALSE;
 
     if (mdat) {
-        if (!olfaction(gy.youmonst.data))
+        if (!olfaction(youmonst.data))
             return FALSE;
         mndx = monsndx(mdat);
         switch (mndx) {
@@ -5968,7 +5968,7 @@ usmellmon(struct permonst *mdat)
                 msg_given = TRUE;
                 break;
             case S_ORC:
-                if (maybe_polyd(is_orc(gy.youmonst.data), Race_if(PM_ORC)))
+                if (maybe_polyd(is_orc(youmonst.data), Race_if(PM_ORC)))
                     You("notice an attractive smell.");
                 else
                     pline("A foul stench makes you feel a little nauseated.");

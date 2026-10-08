@@ -748,7 +748,7 @@ set_artifact_intrinsic(
     if (mask && wp_mask == W_ART && !on) {
         /* find out if some other artifact also confers this intrinsic;
            if so, leave the mask alone */
-        for (obj = gi.invent; obj; obj = obj->nobj) {
+        for (obj = invent; obj; obj = obj->nobj) {
             if (obj != otmp && obj->oartifact) {
                 art = get_artifact(obj);
                 if (art != &artilist[ART_NONARTIFACT]
@@ -770,7 +770,7 @@ set_artifact_intrinsic(
     spfx = (wp_mask != W_ART) ? oart->spfx : oart->cspfx;
     if (spfx && wp_mask == W_ART && !on) {
         /* don't change any spfx also conferred by other artifacts */
-        for (obj = gi.invent; obj; obj = obj->nobj)
+        for (obj = invent; obj; obj = obj->nobj)
             if (obj != otmp && obj->oartifact) {
                 art = get_artifact(obj);
                 if (art != &artilist[ART_NONARTIFACT])
@@ -914,7 +914,7 @@ touch_artifact(struct obj *obj, struct monst *mon)
     if (oart == &artilist[ART_NONARTIFACT])
         return 1;
 
-    yours = (mon == &gy.youmonst);
+    yours = (mon == &youmonst);
     /* all quest artifacts are self-willed; if this ever changes, `badclass'
        will have to be extended to explicitly include quest artifacts */
     self_willed = ((oart->spfx & SPFX_INTEL) != 0);
@@ -1014,7 +1014,7 @@ spec_applies(const struct artifact *weap, struct monst *mtmp)
     if (!(weap->spfx & (SPFX_DBONUS | SPFX_ATTK)))
         return (weap->attk.adtyp == AD_PHYS);
 
-    yours = (mtmp == &gy.youmonst);
+    yours = (mtmp == &youmonst);
     ptr = mtmp->data;
 
     if (weap->spfx & SPFX_DMONS) {
@@ -1256,8 +1256,8 @@ Mb_hit(struct monst *magr, /* attacker */
 {
     struct permonst *old_mdat;
     const char *verb;
-    boolean youattack = (magr == &gy.youmonst),
-            youdefend = (mdef == &gy.youmonst),
+    boolean youattack = (magr == &youmonst),
+            youdefend = (mdef == &youmonst),
             resisted = FALSE, do_stun, do_confuse, result;
     int attack_indx, fakeidx, scare_dieroll = MB_MAX_DIEROLL / 2;
 
@@ -1313,7 +1313,7 @@ Mb_hit(struct monst *magr, /* attacker */
     /* now perform special effects */
     switch (attack_indx) {
     case MB_INDEX_CANCEL:
-        old_mdat = youdefend ? gy.youmonst.data : mdef->data;
+        old_mdat = youdefend ? youmonst.data : mdef->data;
         /* No mdef->mcan check: even a cancelled monster can be polymorphed
          * into a golem, and the "cancel" effect acts as if some magical
          * energy remains in spellcasting defenders to be absorbed later.
@@ -1323,7 +1323,7 @@ Mb_hit(struct monst *magr, /* attacker */
         } else {
             do_stun = FALSE;
             if (youdefend) {
-                if (gy.youmonst.data != old_mdat)
+                if (youmonst.data != old_mdat)
                     *dmgptr = 0; /* rehumanized, so no more damage */
                 if (u.uenmax > 0) {
                     u.uenmax--;
@@ -1359,7 +1359,7 @@ Mb_hit(struct monst *magr, /* attacker */
                 nomul(-3);
                 gm.multi_reason = "being scared stiff";
                 gn.nomovemsg = "";
-                if (magr && magr == u.ustuck && sticks(gy.youmonst.data)) {
+                if (magr && magr == u.ustuck && sticks(youmonst.data)) {
                     set_ustuck((struct monst *) 0);
                     You("release %s!", mon_nam(magr));
                 }
@@ -1451,8 +1451,8 @@ artifact_hit(
     int *dmgptr,        /* output */
     int dieroll)        /* needed for Magicbane and vorpal blades */
 {
-    boolean youattack = (magr == &gy.youmonst);
-    boolean youdefend = (mdef == &gy.youmonst);
+    boolean youattack = (magr == &youmonst);
+    boolean youdefend = (mdef == &youmonst);
     boolean vis = (!youattack && magr && cansee(magr->mx, magr->my))
                   || (!youdefend && cansee(mdef->mx, mdef->my))
                   || (youattack && engulfing_u(mdef) && !Blind);
@@ -1575,7 +1575,7 @@ artifact_hit(
                 observe_object(otmp);
                 return TRUE;
             } else {
-                if (bigmonst(gy.youmonst.data)) {
+                if (bigmonst(youmonst.data)) {
                     pline("%s cuts deeply into you!",
                           magr ? Monnam(magr) : wepdesc);
                     *dmgptr *= 2;
@@ -1622,14 +1622,14 @@ artifact_hit(
                 observe_object(otmp);
                 return TRUE;
             } else {
-                if (!has_head(gy.youmonst.data)) {
+                if (!has_head(youmonst.data)) {
                     pline("Somehow, %s misses you wildly.",
                           magr ? mon_nam(magr) : wepdesc);
                     *dmgptr = 0;
                     return TRUE;
                 }
-                if (noncorporeal(gy.youmonst.data)
-                    || amorphous(gy.youmonst.data)) {
+                if (noncorporeal(youmonst.data)
+                    || amorphous(youmonst.data)) {
                     pline("%s slices through your %s.", wepdesc,
                           body_part(NECK));
                     return TRUE;
@@ -2344,26 +2344,26 @@ staticfn unsigned long
 abil_to_spfx(long *abil)
 {
     static const struct abil2spfx_tag {
-        long *abil;
+        int prop; /* index into u.uprops[]; the hero's extrinsic */
         unsigned long spfx;
     } abil2spfx[] = {
-        { &ESearching, SPFX_SEARCH },
-        { &EHalluc_resistance, SPFX_HALRES },
-        { &ETelepat, SPFX_ESP },
-        { &EStealth, SPFX_STLTH },
-        { &ERegeneration, SPFX_REGEN },
-        { &ETeleport_control, SPFX_TCTRL },
-        { &EWarn_of_mon, SPFX_WARN },
-        { &EWarning, SPFX_WARN },
-        { &EEnergy_regeneration, SPFX_EREGEN },
-        { &EHalf_spell_damage, SPFX_HSPDAM },
-        { &EHalf_physical_damage, SPFX_HPHDAM },
-        { &EReflecting, SPFX_REFLECT },
+        { SEARCHING, SPFX_SEARCH },
+        { HALLUC_RES, SPFX_HALRES },
+        { TELEPAT, SPFX_ESP },
+        { STEALTH, SPFX_STLTH },
+        { REGENERATION, SPFX_REGEN },
+        { TELEPORT_CONTROL, SPFX_TCTRL },
+        { WARN_OF_MON, SPFX_WARN },
+        { WARNING, SPFX_WARN },
+        { ENERGY_REGENERATION, SPFX_EREGEN },
+        { HALF_SPDAM, SPFX_HSPDAM },
+        { HALF_PHDAM, SPFX_HPHDAM },
+        { REFLECTING, SPFX_REFLECT },
     };
     int k;
 
     for (k = 0; k < SIZE(abil2spfx); k++) {
-        if (abil2spfx[k].abil == abil)
+        if (&u.uprops[abil2spfx[k].prop].extrinsic == abil)
             return abil2spfx[k].spfx;
     }
     return 0L;
@@ -2390,7 +2390,7 @@ what_gives(long *abil)
     spfx = abil_to_spfx(abil);
     wornbits = (wornmask & *abil);
 
-    for (obj = gi.invent; obj; obj = obj->nobj) {
+    for (obj = invent; obj; obj = obj->nobj) {
         if (obj->oartifact
             && (abil != &EWarn_of_mon || svc.context.warntype.obj)) {
             const struct artifact *art = get_artifact(obj);
@@ -2517,11 +2517,11 @@ retouch_object(
         return 1;
     }
 
-    if (touch_artifact(obj, &gy.youmonst)) {
+    if (touch_artifact(obj, &youmonst)) {
         char buf[BUFSZ];
         int dmg = 0, tmp;
         boolean ag = (objects[obj->otyp].oc_material == SILVER && Hate_silver),
-                bane = bane_applies(get_artifact(obj), &gy.youmonst);
+                bane = bane_applies(get_artifact(obj), &youmonst);
 
         /* nothing else to do if hero can successfully handle this object */
         if (!ag && !bane)
@@ -2565,7 +2565,7 @@ retouch_object(
         struct obj *otmp;
 
         remove_worn_item(obj, FALSE);
-        for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+        for (otmp = invent; otmp; otmp = otmp->nobj)
             if (otmp == obj)
                 break;
         if (!otmp)
@@ -2690,9 +2690,9 @@ retouch_equipment(
     /* loss of levitation (silver ring, or Heart of Ahriman invocation)
        might cause hero to lose inventory items (by dropping into lava,
        for instance), so inventory traversal needs to rescan the whole
-       gi.invent chain each time it moves on to another object; we use bypass
+       invent chain each time it moves on to another object; we use bypass
        handling to keep track of which items have already been processed */
-    while ((obj = nxt_unbypassed_obj(gi.invent)) != 0)
+    while ((obj = nxt_unbypassed_obj(invent)) != 0)
         (void) untouchable(obj, dropit);
 
     if (had_rings != (!!uleft + !!uright) && uarmg && uarmg->cursed)
@@ -2776,7 +2776,7 @@ is_magic_key(struct monst *mon, /* if null, non-rogue is assumed */
              struct obj *obj)
 {
     if (is_art(obj, ART_MASTER_KEY_OF_THIEVERY)) {
-        if ((mon == &gy.youmonst) ? Role_if(PM_ROGUE)
+        if ((mon == &youmonst) ? Role_if(PM_ROGUE)
                                  : (mon && mon->data == &mons[PM_ROGUE]))
             return !obj->cursed; /* a rogue; non-cursed suffices for magic */
         /* not a rogue; key must be blessed to behave as a magic one */
@@ -2793,8 +2793,8 @@ has_magic_key(struct monst *mon) /* if null, hero assumed */
     short key = artilist[ART_MASTER_KEY_OF_THIEVERY].otyp;
 
     if (!mon)
-        mon = &gy.youmonst;
-    for (o = ((mon == &gy.youmonst) ? gi.invent : mon->minvent); o;
+        mon = &youmonst;
+    for (o = ((mon == &youmonst) ? invent : mon->minvent); o;
          o = nxtobj(o, key, FALSE)) {
         if (is_magic_key(mon, o))
             return o;

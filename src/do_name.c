@@ -523,7 +523,7 @@ docallcmd(void)
     any.a_char = 'm'; /* group accelerator 'C' */
     add_menu(win, &nul_glyphinfo, &any, abc ? 0 : any.a_char, 'C',
              ATR_NONE, clr, "a monster", MENU_ITEMFLAGS_NONE);
-    if (gi.invent) {
+    if (invent) {
         /* we use y and n as accelerators so that we can accept user's
            response keyed to old "name an individual object?" prompt */
         any.a_char = 'i'; /* group accelerator 'y' */
@@ -689,7 +689,7 @@ namefloorobj(void)
        been moved off the hero's '@' yet, but there's no way to adjust
        the help text once getpos() has started */
     Sprintf(buf, "object on map (or '.' for one %s you)",
-            (u.uundetected && hides_under(gy.youmonst.data))
+            (u.uundetected && hides_under(youmonst.data))
               ? "over" : "under");
     if (getpos(&cc, FALSE, buf) < 0 || cc.x <= 0)
         return;
@@ -840,7 +840,7 @@ x_monnam(
             mappear_as_mon = (M_AP_TYPE(mtmp) == M_AP_MONSTER);
     char *bp, buf2[BUFSZ];
 
-    if (mtmp == &gy.youmonst)
+    if (mtmp == &youmonst)
         return strcpy(buf, "you"); /* ignore article, "invisible", &c */
 
     if (program_state.gameover)
@@ -1308,7 +1308,7 @@ Mgender(struct monst *mtmp)
 {
     int mgender = MALE;
 
-    if (mtmp == &gy.youmonst) {
+    if (mtmp == &youmonst) {
         if (Upolyd ? u.mfemale : flags.female)
             mgender = FEMALE;
     } else if (mtmp->female) {

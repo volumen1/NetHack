@@ -607,7 +607,7 @@ failed_grab(
         && (mattk->aatyp == AT_HUGS || mattk->adtyp == AD_WRAP
             || mattk->adtyp == AD_STCK  || mattk->adtyp == AD_DGST)) {
         if ((gv.vis && canspotmon(mdef)) /* mon-vs-mon */
-            || magr == &gy.youmonst || mdef == &gy.youmonst) {
+            || magr == &youmonst || mdef == &youmonst) {
             char magrnam[BUFSZ], mdefnam[BUFSZ];
             boolean tailmiss = gn.notonhead;
             const char *verb = (mattk->adtyp == AD_DGST) ? "gulp"
@@ -618,10 +618,10 @@ failed_grab(
                mon_nam(x_monnam) calls s_suffix() for named ghosts and
                s_suffix() uses a single static buffer; make copies of both
                names to overcome that [note: comment predates 'tailmiss'] */
-            Strcpy(magrnam, (magr == &gy.youmonst) ? "Your"
+            Strcpy(magrnam, (magr == &youmonst) ? "Your"
                                                    : s_suffix(Monnam(magr)));
             if (!tailmiss) {
-                Strcpy(mdefnam, (mdef == &gy.youmonst) ? "you"
+                Strcpy(mdefnam, (mdef == &youmonst) ? "you"
                                                        : mon_nam(mdef));
             } else {
                 /* hero poly'd into long worm can't grow tail
@@ -808,8 +808,8 @@ engulf_target(struct monst *magr, struct monst *mdef)
 {
     struct rm *lev;
     int ax, ay, dx, dy;
-    boolean uatk = (magr == &gy.youmonst),
-            udef = (mdef == &gy.youmonst);
+    boolean uatk = (magr == &youmonst),
+            udef = (mdef == &youmonst);
 
     /* can't swallow something that's too big */
     if (mdef->data->msize >= MZ_HUGE
@@ -825,16 +825,16 @@ engulf_target(struct monst *magr, struct monst *mdef)
        might not be able to place attacker and defender both back on map;
        when defender is the hero, a sanity_check complaint about placing
        the hero on top of a monster can occur */
-    dx = (mdef == &gy.youmonst) ? u.ux : mdef->mx;
-    dy = (mdef == &gy.youmonst) ? u.uy : mdef->my;
+    dx = (mdef == &youmonst) ? u.ux : mdef->mx;
+    dy = (mdef == &youmonst) ? u.uy : mdef->my;
     lev = &levl[dx][dy];
     if (!(udef ? Passes_walls : passes_walls(mdef->data))
           && (IS_OBSTRUCTED(lev->typ) || closed_door(dx, dy) || IS_TREE(lev->typ)
               /* not passes_bars(); engulfer isn't squeezing through */
               || (lev->typ == IRONBARS && !is_whirly(magr->data))))
         return FALSE;
-    ax = (magr == &gy.youmonst) ? u.ux : magr->mx;
-    ay = (magr == &gy.youmonst) ? u.uy : magr->my;
+    ax = (magr == &youmonst) ? u.ux : magr->mx;
+    ay = (magr == &youmonst) ? u.uy : magr->my;
     lev = &levl[ax][ay];
     if (!(uatk ? Passes_walls : passes_walls(magr->data))
         && (IS_OBSTRUCTED(lev->typ) || closed_door(ax, ay) || IS_TREE(lev->typ)
@@ -1124,7 +1124,7 @@ mon_poly(struct monst *magr, struct monst *mdef, int dmg)
     static const char freaky[] = " undergoes a freakish metamorphosis";
     struct permonst *oldform = mdef->data;
 
-    if (mdef == &gy.youmonst) {
+    if (mdef == &youmonst) {
         if (Antimagic) {
             shieldeff(u.ux, u.uy);
         } else if (Unchanging) {
@@ -1166,7 +1166,7 @@ mon_poly(struct monst *magr, struct monst *mdef, int dmg)
             mdef->mhp -= dmg;
             dmg = 0;
             if (DEADMONSTER(mdef)) {
-                if (magr == &gy.youmonst)
+                if (magr == &youmonst)
                     xkilled(mdef, XKILL_GIVEMSG | XKILL_NOCORPSE);
                 else
                     monkilled(mdef, "", AD_RBRE);
@@ -1182,13 +1182,13 @@ mon_poly(struct monst *magr, struct monst *mdef, int dmg)
                           x_monnam(mdef, ARTICLE_A, (char *) 0,
                                    (SUPPRESS_NAME | SUPPRESS_IT
                                     | SUPPRESS_INVISIBLE), FALSE));
-                else if (was_seen || magr == &gy.youmonst)
+                else if (was_seen || magr == &youmonst)
                     pline("%s%s%s.", Before, freaky,
                           !was_seen ? "" : " and disappears");
             }
             dmg = 0;
             if (can_teleport(magr->data)) {
-                if (magr == &gy.youmonst)
+                if (magr == &youmonst)
                     tele();
                 else if (!tele_restrict(magr))
                     (void) rloc(magr, RLOC_MSG);
@@ -1200,7 +1200,7 @@ mon_poly(struct monst *magr, struct monst *mdef, int dmg)
     }
     /* when a transformation has happened, can't attack again for poly
        effect during next turn or two; not enforced for poly'd hero */
-    if (mdef->data != oldform && magr != &gy.youmonst)
+    if (mdef->data != oldform && magr != &youmonst)
         magr->mspec_used += rnd(2);
 
     return dmg;
@@ -1250,7 +1250,7 @@ void
 slept_monst(struct monst *mon)
 {
     if (helpless(mon) && mon == u.ustuck
-        && !sticks(gy.youmonst.data) && !u.uswallow) {
+        && !sticks(youmonst.data) && !u.uswallow) {
         pline_mon(mon, "%s grip relaxes.", s_suffix(Monnam(mon)));
         unstuck(mon);
     }

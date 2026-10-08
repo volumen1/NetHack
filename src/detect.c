@@ -160,7 +160,7 @@ trapped_chest_at(int ttyp, coordxy x, coordxy y)
         return TRUE;
     /* in inventory, we need to find one which is actually trapped */
     if (u_at(x, y)) {
-        for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+        for (otmp = invent; otmp; otmp = otmp->nobj)
             if (Is_box(otmp) && otmp->otrapped)
                 return TRUE;
         if (u.usteed) { /* steed isn't on map so won't be found by m_at() */
@@ -386,9 +386,9 @@ gold_detect(struct obj *sobj)
            adjust message if you have gold in your inventory */
         char buf[BUFSZ];
 
-        if (gy.youmonst.data == &mons[PM_GOLD_GOLEM])
+        if (youmonst.data == &mons[PM_GOLD_GOLEM])
             Sprintf(buf, "You feel like a million %s!", currency(2L));
-        else if (money_cnt(gi.invent) || hidden_gold(TRUE))
+        else if (money_cnt(invent) || hidden_gold(TRUE))
             Strcpy(buf,
                "You feel worried about your future financial situation.");
         else if (steedgold)
@@ -637,7 +637,7 @@ object_detect(struct obj *detector, /* object doing the detecting */
         Strcat(stuff, " and/or large stones");
 
     if (do_dknown)
-        for (obj = gi.invent; obj; obj = obj->nobj)
+        for (obj = invent; obj; obj = obj->nobj)
             observe_recursively(obj);
 
     for (obj = fobj; obj; obj = obj->nobj) {
@@ -973,7 +973,7 @@ display_trap_map(int cursed_src)
             continue;
         (void) detect_obj_traps(mon->minvent, TRUE, cursed_src, NULL);
     }
-    (void) detect_obj_traps(gi.invent, TRUE, cursed_src, NULL);
+    (void) detect_obj_traps(invent, TRUE, cursed_src, NULL);
 
     for (ttmp = gf.ftrap; ttmp; ttmp = ttmp->ntrap)
         sense_trap(ttmp, 0, 0, cursed_src);
@@ -1057,7 +1057,7 @@ trap_detect(
             found = TRUE;
         }
     }
-    if (detect_obj_traps(gi.invent, FALSE, 0, NULL) != OTRAP_NONE)
+    if (detect_obj_traps(invent, FALSE, 0, NULL) != OTRAP_NONE)
         found = TRUE;
     /* door traps */
     for (door = 0; door < gd.doorindex; door++) {
@@ -1227,7 +1227,7 @@ use_crystal_ball(struct obj **optr)
             make_confused((HConfusion & TIMEOUT) + impair, FALSE);
             break;
         case 3:
-            if (!resists_blnd(&gy.youmonst)) {
+            if (!resists_blnd(&youmonst)) {
                 pline("%s your vision!", Tobjnam(obj, "damage"));
                 make_blinded(BlindedTimeout + impair, FALSE);
                 if (!Blind)
@@ -1690,7 +1690,7 @@ findone(coordxy zx, coordxy zy, genericptr_t whatfound)
     if (mtmp)
         (void) detect_obj_traps(mtmp->minvent, TRUE, 0, found_p);
     if (u_at(zx, zy))
-        (void) detect_obj_traps(gi.invent, TRUE, 0, found_p);
+        (void) detect_obj_traps(invent, TRUE, 0, found_p);
 
     if (mtmp && (!canspotmon(mtmp) || mtmp->mundetected || M_AP_TYPE(mtmp))) {
         if (M_AP_TYPE(mtmp)) {
@@ -1776,7 +1776,7 @@ openone(coordxy zx, coordxy zy, genericptr_t num)
             newsym(zx, zy);
             (*num_p)++;
         }
-        mon = u_at(zx, zy) ? &gy.youmonst : m_at(zx, zy);
+        mon = u_at(zx, zy) ? &youmonst : m_at(zx, zy);
         if (openholdingtrap(mon, &dummy)
             || openfallingtrap(mon, TRUE, &dummy))
             (*num_p)++;

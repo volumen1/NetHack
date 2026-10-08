@@ -125,7 +125,7 @@ do_statusline2(void)
 
     /* dungeon location plus gold */
     (void) describe_level(dloc, 1); /* includes at least one trailing space */
-    if ((money = money_cnt(gi.invent)) < 0L)
+    if ((money = money_cnt(invent)) < 0L)
         money = 0L; /* ought to issue impossible() and then discard gold */
     Sprintf(eos(dloc), "%s:%-2ld", /* strongest hero can lift ~300000 gold */
             (iflags.in_dumplog || iflags.invis_goldsym) ? "$"
@@ -256,7 +256,7 @@ bot(void)
         return;
     /* dosave() flags completion by setting u.uhp to -1; suppress_map_output()
        covers program_state.restoring and is used for status as well as map */
-    if (u.uhp != -1 && gy.youmonst.data
+    if (u.uhp != -1 && youmonst.data
         && iflags.status_updates && !suppress_map_output()) {
         if (VIA_WINDOWPORT()) {
             bot_via_windowport();
@@ -422,7 +422,7 @@ botl_score(void)
     long umoney, depthbonus;
 
     /* hidden_gold(False): only gold in containers whose contents are known */
-    umoney = money_cnt(gi.invent) + hidden_gold(FALSE);
+    umoney = money_cnt(invent) + hidden_gold(FALSE);
     /* don't include initial gold; don't impose penalty if it's all gone */
     if ((umoney -= u.umoney0) < 0L)
         umoney = 0L;
@@ -487,7 +487,7 @@ weapon_status(char *outbuf)
         /* no weapon; gloves imply hands; humanoid also implies hands;
            otherwise make no assumptions */
         res = uarmg ? "Empty-hnd" /* empty handed means "gloves only" */
-              : humanoid(gy.youmonst.data) ? "Bare-hnds" /* bare hands */
+              : humanoid(youmonst.data) ? "Bare-hnds" /* bare hands */
                 : "No-weapon";
     } else if (u.twoweap) {
         /* two-weaponing implies hands and a weapon or wep-tool
@@ -1048,7 +1048,7 @@ bot_via_windowport(void)
     gv.valset[BL_LEVELDESC] = TRUE; /* indicate val already set */
 
     /* Gold */
-    if ((money = money_cnt(gi.invent)) < 0L)
+    if ((money = money_cnt(invent)) < 0L)
         money = 0L; /* ought to issue impossible() and then discard gold */
     gb.blstats[idx][BL_GOLD].rawval.a_long = money;
     gb.blstats[idx][BL_GOLD].a.a_long = min(money, 999999L);
@@ -1179,7 +1179,7 @@ bot_via_windowport(void)
 #else
             test_if_enabled(bl_held) = TRUE;
 #endif
-        } else if (Upolyd && sticks(gy.youmonst.data)) {
+        } else if (Upolyd && sticks(youmonst.data)) {
             test_if_enabled(bl_holding) = TRUE;
         } else {
             /* grab == hero is held by sea monster and about to be drowned;

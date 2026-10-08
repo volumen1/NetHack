@@ -294,7 +294,7 @@ demon_talk(struct monst *mtmp)
         }
         newsym(mtmp->mx, mtmp->my);
     }
-    if (gy.youmonst.data->mlet == S_DEMON) { /* Won't blackmail their own. */
+    if (youmonst.data->mlet == S_DEMON) { /* Won't blackmail their own. */
         if (!Deaf)
             pline("%s says, \"Good hunting, %s.\"", Amonnam(mtmp),
                   flags.female ? "Sister" : "Brother");
@@ -305,7 +305,7 @@ demon_talk(struct monst *mtmp)
             (void) rloc(mtmp, RLOC_MSG);
         return 1;
     }
-    cash = money_cnt(gi.invent);
+    cash = money_cnt(invent);
     demand = (cash * (rnd(80) + 20 * Athome))
            / (100 * (1 + (sgn(u.ualign.type) == sgn(mtmp->data->maligntyp))));
 
@@ -361,7 +361,7 @@ bribe(struct monst *mtmp, const char *prompt)
 {
     char buf[BUFSZ] = DUMMY;
     long offer;
-    long umoney = money_cnt(gi.invent);
+    long umoney = money_cnt(invent);
 
     getlin(prompt, buf);
     if (sscanf(buf, "%ld", &offer) != 1)

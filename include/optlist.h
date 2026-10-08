@@ -214,7 +214,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
            (char *)0)
 #endif
     NHOPTB(blind, Advanced, 0, opt_in, set_in_config,
-           Off, Yes, No, No, "permablind", &u.uroleplay.blind, Term_False,
+           Off, Yes, No, No, "permablind", &cfg_roleplay.blind, Term_False,
            "your character is permanently blind")
     NHOPTB(bones, Advanced, 0, opt_out, set_in_config,
            On, Yes, No, No, NoAlias, &flags.bones, Term_False,
@@ -271,7 +271,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
            On, Yes, No, No, NoAlias, &flags.dark_room, Term_False,
            "show floor outside line of sight differently")
     NHOPTB(deaf, Advanced, 0, opt_in, set_in_config,
-           Off, Yes, No, No, "permadeaf", &u.uroleplay.deaf, Term_False,
+           Off, Yes, No, No, "permadeaf", &cfg_roleplay.deaf, Term_False,
            "your character is permanently deaf")
 #ifdef BACKWARD_COMPAT
     NHOPTC(DECgraphics, Advanced, 70, opt_in, set_in_config,
@@ -537,7 +537,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
            (char *)0)
 #endif
     NHOPTB(nudist, Advanced, 0, opt_in, set_in_config,
-           Off, Yes, No, No, NoAlias, &u.uroleplay.nudist, Term_False,
+           Off, Yes, No, No, NoAlias, &cfg_roleplay.nudist, Term_False,
            "start your character without armor")
     NHOPTB(null, Advanced, 0, opt_out, set_in_game,
            On, Yes, No, No, NoAlias, &flags.null, Term_False,
@@ -567,7 +567,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
                 Yes, Yes, Yes, Yes, "prayconfirm",
                 "extra prompting in certain situations")
     NHOPTB(pauper, Advanced, 0, opt_in, set_in_config,
-           Off, Yes, No, No, NoAlias, &u.uroleplay.pauper, Term_False,
+           Off, Yes, No, No, NoAlias, &cfg_roleplay.pauper, Term_False,
            "start your character without any items")
     NHOPTB(perm_invent, Advanced, 0, opt_in, set_in_game,
                 Off, Yes, No, No, NoAlias, &iflags.perm_invent, Term_Off,
@@ -628,7 +628,7 @@ static int optfn_##a(int, int, boolean, char *, char *);
            (char *)0)
 #endif
     NHOPTB(reroll, Advanced, 0, opt_in, set_in_config,
-           Off, Yes, No, No, NoAlias, &u.uroleplay.reroll, Term_False,
+           Off, Yes, No, No, NoAlias, &cfg_roleplay.reroll, Term_False,
            "allow rerolling of starting inventory and items")
     NHOPTB(rest_on_space, Advanced, 0, opt_in, set_in_game, Off,
            Yes, No, No, NoAlias, &flags.rest_on_space, Term_False,

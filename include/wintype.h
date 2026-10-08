@@ -92,7 +92,7 @@ typedef struct glyph_map_entry {
     uint16 color256idx;
     short int tileidx;
 #ifdef ENHANCED_SYMBOLS
-    struct unicode_representation *u;
+    struct unicode_representation *uni;
 #endif
 } glyph_map;
 

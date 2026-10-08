@@ -14,7 +14,7 @@
 #endif
 
 staticfn const char *intermed(void);
-/* sometimes find_qarti(gi.invent), and gi.invent can be null */
+/* sometimes find_qarti(invent), and invent can be null */
 staticfn struct obj *find_qarti(struct obj *) NO_NNARGS;
 staticfn const char *neminame(void);
 staticfn const char *guardname(void);
@@ -94,7 +94,7 @@ find_quest_artifact(unsigned whichchains)
     struct obj *qarti = 0;
 
     if ((whichchains & (1 << OBJ_INVENT)) != 0)
-        qarti = find_qarti(gi.invent);
+        qarti = find_qarti(invent);
     if (!qarti && (whichchains & (1 << OBJ_FLOOR)) != 0)
         qarti = find_qarti(fobj);
     if (!qarti && (whichchains & (1 << OBJ_MINVENT)) != 0)

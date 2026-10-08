@@ -13,26 +13,31 @@ staticfn int extra_pref(struct monst *, struct obj *) NONNULLARG1;
 
 static const struct worn {
     long w_mask;
-    struct obj **w_obj;
+    size_t w_off; /* offset of the slot within struct hero */
     const char *w_what; /* for failing sanity check's feedback */
-} worn[] = { { W_ARM, &uarm, "suit" },
-             { W_ARMC, &uarmc, "cloak" },
-             { W_ARMH, &uarmh, "helmet" },
-             { W_ARMS, &uarms, "shield" },
-             { W_ARMG, &uarmg, "gloves" },
-             { W_ARMF, &uarmf, "boots" },
-             { W_ARMU, &uarmu, "shirt" },
-             { W_RINGL, &uleft, "left ring" },
-             { W_RINGR, &uright, "right ring" },
-             { W_WEP, &uwep, "weapon" },
-             { W_SWAPWEP, &uswapwep, "alternate weapon" },
-             { W_QUIVER, &uquiver, "quiver" },
-             { W_AMUL, &uamul, "amulet" },
-             { W_TOOL, &ublindf, "facewear" }, /* blindfold|towel|lenses */
-             { W_BALL, &uball, "chained ball" },
-             { W_CHAIN, &uchain, "attached chain" },
+} worn[] = { { W_ARM, offsetof(struct hero, arm), "suit" },
+             { W_ARMC, offsetof(struct hero, armc), "cloak" },
+             { W_ARMH, offsetof(struct hero, armh), "helmet" },
+             { W_ARMS, offsetof(struct hero, arms), "shield" },
+             { W_ARMG, offsetof(struct hero, armg), "gloves" },
+             { W_ARMF, offsetof(struct hero, armf), "boots" },
+             { W_ARMU, offsetof(struct hero, armu), "shirt" },
+             { W_RINGL, offsetof(struct hero, left), "left ring" },
+             { W_RINGR, offsetof(struct hero, right), "right ring" },
+             { W_WEP, offsetof(struct hero, wep), "weapon" },
+             { W_SWAPWEP, offsetof(struct hero, swapwep),
+               "alternate weapon" },
+             { W_QUIVER, offsetof(struct hero, quiver), "quiver" },
+             { W_AMUL, offsetof(struct hero, amul), "amulet" },
+             /* blindfold|towel|lenses */
+             { W_TOOL, offsetof(struct hero, blindf), "facewear" },
+             { W_BALL, offsetof(struct hero, ball), "chained ball" },
+             { W_CHAIN, offsetof(struct hero, chain), "attached chain" },
              { 0, 0, (char *) 0 }
 };
+
+/* the current hero's equipment slot described by worn[] entry 'wp' */
+#define W_OBJ(wp) (*(struct obj **) ((char *) cur_hero + (wp)->w_off))
 
 /* This only allows for one blocking item per property */
 #define w_blocks(o, m) \
@@ -53,7 +58,7 @@ recalc_telepat_range(void)
     int nobjs = 0;
 
     for (wp = worn; wp->w_mask; wp++) {
-        struct obj *oobj = *(wp->w_obj);
+        struct obj *oobj = W_OBJ(wp);
 
         if (oobj && objects[oobj->otyp].oc_oprop == TELEPAT)
             nobjs++;
@@ -83,7 +88,7 @@ setworn(struct obj *obj, long mask)
     } else {
         for (wp = worn; wp->w_mask; wp++) {
             if (wp->w_mask & mask) {
-                oobj = *(wp->w_obj);
+                oobj = W_OBJ(wp);
                 if (oobj && !(oobj->owornmask & wp->w_mask))
                     impossible("Setworn: mask=0x%08lx.", wp->w_mask);
                 if (oobj) {
@@ -109,7 +114,7 @@ setworn(struct obj *obj, long mask)
                        is pending (via 'A' command for multiple items) */
                     cancel_doff(oobj, wp->w_mask);
                 }
-                *(wp->w_obj) = obj;
+                W_OBJ(wp) = obj;
                 if (obj) {
                     obj->owornmask |= wp->w_mask;
                     /* Prevent getting/blocking intrinsics from wielding
@@ -158,12 +163,12 @@ setnotworn(struct obj *obj)
     if (u.twoweap && (obj == uwep || obj == uswapwep))
         set_twoweap(FALSE); /* u.twoweap = FALSE */
     for (wp = worn; wp->w_mask; wp++)
-        if (obj == *(wp->w_obj)) {
+        if (obj == W_OBJ(wp)) {
             /* in case wearing or removal is in progress or removal
                is pending (via 'A' command for multiple items) */
             cancel_doff(obj, wp->w_mask);
 
-            *(wp->w_obj) = (struct obj *) 0;
+            W_OBJ(wp) = (struct obj *) 0;
             unworn |= wp->w_mask;
             p = objects[obj->otyp].oc_oprop;
             u.uprops[p].extrinsic = u.uprops[p].extrinsic & ~wp->w_mask;
@@ -196,7 +201,7 @@ allunworn(void)
        here anyway (savegamestate() and its callers deal with them) */
     for (wp = worn; wp->w_mask; wp++) {
         /* object is already gone so we don't/can't update is owornmask */
-        *(wp->w_obj) = (struct obj *) 0;
+        W_OBJ(wp) = (struct obj *) 0;
     }
 }
 
@@ -209,7 +214,7 @@ wearmask_to_obj(long wornmask)
 
     for (wp = worn; wp->w_mask; wp++)
         if (wp->w_mask & wornmask)
-            return *wp->w_obj;
+            return W_OBJ(wp);
     return (struct obj *) 0;
 }
 
@@ -365,11 +370,11 @@ check_wornmask_slots(void)
         m = wp->w_mask;
         if ((m & IGNORE_SLOTS) != 0L && (m & ~IGNORE_SLOTS) == 0L)
             continue;
-        if ((o = *wp->w_obj) != 0) {
+        if ((o = W_OBJ(wp)) != 0) {
             whybuf[0] = '\0';
             /* slot pointer (uarm, uwep, &c) is populated; check that object
                is in inventory and has the relevant owornmask bit set */
-            for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+            for (otmp = invent; otmp; otmp = otmp->nobj)
                 if (otmp == o)
                     break;
             if (!otmp)
@@ -389,7 +394,7 @@ check_wornmask_slots(void)
            claims to be worn/wielded in this slot; make this test whether
            'o' is Null or not; [sanity_check_worn(mkobj.c) for object by
            object checking will most likely have already caught this] */
-        for (otmp = gi.invent; otmp; otmp = otmp->nobj) {
+        for (otmp = invent; otmp; otmp = otmp->nobj) {
             if (otmp != o && (otmp->owornmask & m) != 0L
                 /* embedded scales owornmask is W_ARM|I_SPECIAL so would
                    give a false complaint about item other than uarm having
@@ -410,7 +415,7 @@ check_wornmask_slots(void)
         o = uskin;
         m = W_ARM | I_SPECIAL;
         whybuf[0] = '\0';
-        for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+        for (otmp = invent; otmp; otmp = otmp->nobj)
             if (otmp == o)
                 break;
         if (!otmp)
@@ -459,7 +464,7 @@ check_wornmask_slots(void)
             why = "uswapwep is not a melee weapon";
         else if (bimanual(uswapwep))
             why = "uswapwep is two-handed";
-        else if (!could_twoweap(gy.youmonst.data))
+        else if (!could_twoweap(youmonst.data))
             why = "without two weapon attacks";
 
         if (why)
@@ -1005,7 +1010,7 @@ m_dowear_type(
 struct obj *
 which_armor(struct monst *mon, long flag)
 {
-    if (mon == &gy.youmonst) {
+    if (mon == &youmonst) {
         switch (flag) {
         case W_ARM:
             return uarm;
@@ -1079,7 +1084,7 @@ clear_bypasses(void)
      */
 
     clear_bypass(fobj);
-    clear_bypass(gi.invent);
+    clear_bypass(invent);
     clear_bypass(gm.migrating_objs);
     clear_bypass(svl.level.buriedobjlist);
     clear_bypass(gb.billobjs);

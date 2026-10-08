@@ -775,7 +775,7 @@ drag_ball(coordxy x, coordxy y, int *bc_control,
 
     if (near_capacity() > SLT_ENCUMBER && dist2(x, y, u.ux, u.uy) <= 2) {
         You("cannot %sdrag the heavy iron ball.",
-            gi.invent ? "carry all that and also " : "");
+            invent ? "carry all that and also " : "");
         nomul(0);
         return FALSE;
     }
@@ -972,7 +972,7 @@ litter(void)
     struct obj *otmp, *nextobj = 0;
     int capacity = weight_cap();
 
-    for (otmp = gi.invent; otmp; otmp = nextobj) {
+    for (otmp = invent; otmp; otmp = nextobj) {
         nextobj = otmp->nobj;
         if (otmp != uball && rnd(capacity) <= (int) otmp->owt) {
             if (canletgo(otmp, "")) {

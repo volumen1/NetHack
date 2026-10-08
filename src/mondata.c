@@ -13,7 +13,7 @@ void
 set_mon_data(struct monst *mon, struct permonst *ptr)
 {
     int new_speed, old_speed = mon->data ? mon->data->mmove : 0;
-    short *movement_p = (mon == &gy.youmonst) ? &u.umovement : &mon->movement;
+    short *movement_p = (mon == &youmonst) ? &u.umovement : &mon->movement;
 
     mon->data = ptr;
     mon->mnum = (short) monsndx(ptr);
@@ -92,7 +92,7 @@ defended(struct monst *mon, int adtyp)
 {
     struct obj *o, otemp;
     int mndx;
-    boolean is_you = (mon == &gy.youmonst);
+    boolean is_you = (mon == &youmonst);
 
     /* is 'mon' wielding an artifact that protects against 'adtyp'? */
     o = is_you ? uwep : MON_WEP(mon);
@@ -130,7 +130,7 @@ Resists_Elem(struct monst *mon, int propindx)
 {
     struct obj *o;
     long slotmask;
-    boolean is_you = (mon == &gy.youmonst);
+    boolean is_you = (mon == &youmonst);
     int u_resist = 0, damgtype = 0, rsstmask = 0;
 
     /*
@@ -175,7 +175,7 @@ Resists_Elem(struct monst *mon, int propindx)
     if (o && o->oartifact && defends(damgtype, o))
         return TRUE;
     /* check for resistance granted by worn or carried items */
-    o = is_you ? gi.invent : mon->minvent;
+    o = is_you ? invent : mon->minvent;
     slotmask = W_ARMOR | W_ACCESSORY;
     if (!is_you /* assumes monsters don't wield non-weapons */
         || (uwep && (uwep->oclass == WEAPON_CLASS || is_weptool(uwep))))
@@ -204,7 +204,7 @@ resists_drli(struct monst *mon)
 
     if (is_undead(ptr) || is_demon(ptr) || is_were(ptr)
         /* is_were() doesn't handle hero in human form */
-        || (mon == &gy.youmonst && u.ulycn >= LOW_PM)
+        || (mon == &youmonst && u.ulycn >= LOW_PM)
         || ptr == &mons[PM_DEATH] || is_vampshifter(mon))
         return TRUE;
     return defended(mon, AD_DRLI);
@@ -215,7 +215,7 @@ boolean
 resists_magm(struct monst *mon)
 {
     struct permonst *ptr = mon->data;
-    boolean is_you = (mon == &gy.youmonst);
+    boolean is_you = (mon == &youmonst);
     long slotmask;
     struct obj *o;
 
@@ -228,7 +228,7 @@ resists_magm(struct monst *mon)
     if (o && o->oartifact && defends(AD_MAGM, o))
         return TRUE;
     /* check for magic resistance granted by worn or carried items */
-    o = is_you ? gi.invent : mon->minvent;
+    o = is_you ? invent : mon->minvent;
     slotmask = W_ARMOR | W_ACCESSORY;
     if (!is_you /* assumes monsters don't wield non-weapons */
         || (uwep && (uwep->oclass == WEAPON_CLASS || is_weptool(uwep))))
@@ -248,7 +248,7 @@ boolean
 resists_blnd(struct monst *mon)
 {
     struct permonst *ptr = mon->data;
-    boolean is_you = (mon == &gy.youmonst);
+    boolean is_you = (mon == &youmonst);
 
     if (is_you ? (Blind || Unaware)
                : (mon->mblinded || !mon->mcansee || !haseyes(ptr)
@@ -278,12 +278,12 @@ boolean
 resists_blnd_by_arti(struct monst *mon)
 {
     struct obj *o;
-    boolean is_you = (mon == &gy.youmonst);
+    boolean is_you = (mon == &youmonst);
 
     o = is_you ? uwep : MON_WEP(mon);
     if (o && o->oartifact && defends(AD_BLND, o))
         return TRUE;
-    o = is_you ? gi.invent : mon->minvent;
+    o = is_you ? invent : mon->minvent;
     for (; o; o = o->nobj)
         if (defends_when_carried(AD_BLND, o))
             return TRUE;
@@ -308,7 +308,7 @@ can_blnd(
     uchar aatyp,
     struct obj *obj) /* aatyp == AT_WEAP, AT_SPIT */
 {
-    boolean is_you = (mdef == &gy.youmonst);
+    boolean is_you = (mdef == &youmonst);
     boolean check_visor = FALSE;
     struct obj *o;
 
@@ -354,7 +354,7 @@ can_blnd(
             return TRUE; /* no defense */
         } else
             return FALSE; /* other objects cannot cause blindness yet */
-        if ((magr == &gy.youmonst) && u.uswallow)
+        if ((magr == &youmonst) && u.uswallow)
             return FALSE; /* can't affect eyes while inside monster */
         break;
 
@@ -369,7 +369,7 @@ can_blnd(
         /* e.g. raven: all ublindf, including LENSES, protect */
         if (is_you && ublindf)
             return FALSE;
-        if ((magr == &gy.youmonst) && u.uswallow)
+        if ((magr == &youmonst) && u.uswallow)
             return FALSE; /* can't affect eyes while inside monster */
         check_visor = TRUE;
         break;
@@ -387,7 +387,7 @@ can_blnd(
 
     /* check if wearing a visor (only checked if visor might help) */
     if (check_visor) {
-        o = (mdef == &gy.youmonst) ? gi.invent : mdef->minvent;
+        o = (mdef == &youmonst) ? invent : mdef->minvent;
         for (; o; o = o->nobj)
             if ((o->owornmask & W_ARMH)
                 && objdescr_is(o, "visored helmet"))
@@ -570,7 +570,7 @@ can_blow(struct monst *mtmp)
         && (breathless(mtmp->data) || verysmall(mtmp->data)
             || !has_head(mtmp->data) || mtmp->data->mlet == S_EEL))
         return FALSE;
-    if ((mtmp == &gy.youmonst) && Strangled)
+    if ((mtmp == &youmonst) && Strangled)
         return FALSE;
     return TRUE;
 }
@@ -579,7 +579,7 @@ can_blow(struct monst *mtmp)
 boolean
 can_chant(struct monst *mtmp)
 {
-    if ((mtmp == &gy.youmonst && Strangled)
+    if ((mtmp == &youmonst && Strangled)
         || is_silent(mtmp->data) || !has_head(mtmp->data)
         || mtmp->data->msound == MS_BUZZ || mtmp->data->msound == MS_BURBLE)
         return FALSE;
@@ -602,10 +602,10 @@ can_be_strangled(struct monst *mon)
        are non-breathing creatures which have higher brain function. */
     if (!has_head(mon->data))
         return FALSE;
-    if (mon == &gy.youmonst) {
+    if (mon == &youmonst) {
         /* hero can't be mindless but poly'ing into mindless form can
            confer strangulation protection */
-        nobrainer = mindless(gy.youmonst.data);
+        nobrainer = mindless(youmonst.data);
         nonbreathing = Breathless;
     } else {
         nobrainer = mindless(mon->data);
@@ -1358,7 +1358,7 @@ big_little_match(int montyp1, int montyp2)
 const struct permonst *
 raceptr(struct monst *mtmp)
 {
-    if (mtmp == &gy.youmonst && !Upolyd)
+    if (mtmp == &youmonst && !Upolyd)
         return &mons[gu.urace.mnum];
     return mtmp->data;
 }

@@ -115,7 +115,7 @@ inven_inuse(boolean quietly)
 {
     struct obj *otmp, *otmp2;
 
-    for (otmp = gi.invent; otmp; otmp = otmp2) {
+    for (otmp = invent; otmp; otmp = otmp2) {
         otmp2 = otmp->nobj;
         if (otmp->in_use) {
             if (!quietly)
@@ -610,7 +610,7 @@ restgamestate(NHFILE *nhfp)
     Sfi_long(nhfp, &svw.wreserve, "wreserve");
     Sfi_int32(nhfp, &svw.wtreserved, "wtreserved");
     Sfi_you(nhfp, &u, "gamestate-you");
-    gy.youmonst.cham = u.mcham;
+    youmonst.cham = u.mcham;
 
 #ifndef SFCTOOL
     if (restoring_special && iflags.explore_error_flag) {
@@ -651,7 +651,7 @@ restgamestate(NHFILE *nhfp)
         iflags.perm_invent = defer_perm_invent;
         flags = newgameflags;
         svc.context = newgamecontext;
-        gy.youmonst = cg.zeromonst;
+        youmonst = cg.zeromonst;
         return FALSE;
     }
     /* in case hangup save occurred in midst of level change */
@@ -663,7 +663,7 @@ restgamestate(NHFILE *nhfp)
     restore_timers(nhfp, RANGE_GLOBAL, 0L);
     restore_light_sources(nhfp);
 
-    gi.invent = restobjchn(nhfp, FALSE);
+    invent = restobjchn(nhfp, FALSE);
 
     /* restore dangling (not on floor or in inventory) ball and/or chain */
     bc_obj = restobjchn(nhfp, FALSE);
@@ -693,7 +693,7 @@ restgamestate(NHFILE *nhfp)
     gd.defer_see_monsters = TRUE;
 
     /* this comes after inventory has been loaded */
-    for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+    for (otmp = invent; otmp; otmp = otmp->nobj)
         if (otmp->owornmask)
             setworn(otmp, otmp->owornmask);
 

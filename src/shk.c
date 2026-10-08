@@ -156,7 +156,7 @@ static const char *const angrytexts[] = {
 long
 money2mon(struct monst *mon, long amount)
 {
-    struct obj *ygold = findgold(gi.invent);
+    struct obj *ygold = findgold(invent);
 
     if (amount <= 0) {
         impossible("%s payment in money2mon!", amount ? "negative" : "zero");
@@ -201,7 +201,7 @@ money2u(struct monst *mon, long amount)
         mongold = splitobj(mongold, amount);
     obj_extract_self(mongold);
 
-    if (!merge_choice(gi.invent, mongold)
+    if (!merge_choice(invent, mongold)
             && inv_cnt(FALSE) >= invlet_basic) {
         You("have no room for the gold!");
         dropy(mongold);
@@ -402,7 +402,7 @@ setpaid(struct monst *shkp)
     struct obj *obj;
     struct monst *mtmp;
 
-    clear_unpaid(shkp, gi.invent);
+    clear_unpaid(shkp, invent);
     clear_unpaid(shkp, fobj);
     if (svl.level.buriedobjlist)
         clear_unpaid(shkp, svl.level.buriedobjlist);
@@ -1883,7 +1883,7 @@ dopay(void)
     }
 
     if (shkp != resident && NOTANGRY(shkp)) {
-        umoney = money_cnt(gi.invent);
+        umoney = money_cnt(invent);
         if (!ltmp) {
             You("do not owe %s anything.", shkname(shkp));
         } else if (!umoney) {
@@ -1913,7 +1913,7 @@ dopay(void)
 
     /* ltmp is still eshkp->robbed here */
     if (!eshkp->billct && !eshkp->debit) {
-        umoney = money_cnt(gi.invent);
+        umoney = money_cnt(invent);
         if (!ltmp && NOTANGRY(shkp)) {
             You("do not owe %s anything.", shkname(shkp));
             if (!umoney)
@@ -1970,7 +1970,7 @@ dopay(void)
         long loan = eshkp->loan;
         char sbuf[BUFSZ];
 
-        umoney = money_cnt(gi.invent);
+        umoney = money_cnt(invent);
         Sprintf(sbuf, "You owe %s %ld %s ", shkname(shkp), dtmp,
                 currency(dtmp));
         if (loan) {
@@ -2079,7 +2079,7 @@ pay_billed_items(
     int buy, indx, bidx, pass, iprompt, ebillct;
     struct eshk *eshkp = ESHK(shkp);
 
-    umoney = money_cnt(gi.invent);
+    umoney = money_cnt(invent);
     if (!umoney && !eshkp->credit) {
         You("%shave no gold or credit%s.",
             stashed_gold ? "seem to " : "", *paid_p ? " left" : "");
@@ -2480,7 +2480,7 @@ insufficient_funds(
     long cost) /* 0: check for no-gold; >0: check for specified amount */
 {
     long stashed_gold;
-    long umoney = money_cnt(gi.invent),
+    long umoney = money_cnt(invent),
          ecredit = ESHK(shkp)->credit;
 
     /* dopayobj() checks for no-gold early and not-enough-gold later;
@@ -2635,7 +2635,7 @@ inherits(
     if (uinshop && inhishop(shkp) && !eshkp->billct
         && !eshkp->robbed && !eshkp->debit && NOTANGRY(shkp)
         && !eshkp->following && u.ugrave_arise < LOW_PM) {
-        taken = (gi.invent != 0);
+        taken = (invent != 0);
         if (taken && !silently)
             pline("%s gratefully inherits all your possessions.",
                   Shknam(shkp));
@@ -2651,9 +2651,9 @@ inherits(
     }
 
     if (eshkp->following || ANGRY(shkp) || take) {
-        if (!gi.invent)
+        if (!invent)
             goto skip;
-        umoney = money_cnt(gi.invent);
+        umoney = money_cnt(invent);
         takes[0] = '\0';
         if (helpless(shkp))
             Strcat(takes, "wakes up and ");
@@ -2767,7 +2767,7 @@ finish_paybill(void)
     unleash_all();
     /* if hero has any gold left, take it into shopkeeper's possession */
     if (shkp) {
-        long umoney = money_cnt(gi.invent);
+        long umoney = money_cnt(invent);
 
         if (umoney)
             money2mon(shkp, umoney);
@@ -2803,7 +2803,7 @@ find_oid(unsigned int id)
     int i;
 
     /* first check various obj lists directly */
-    if ((obj = o_on(id, gi.invent)) != 0)
+    if ((obj = o_on(id, invent)) != 0)
         return obj;
     if ((obj = o_on(id, fobj)) != 0)
         return obj;
@@ -3631,12 +3631,12 @@ append_honorific(char *buf)
     };
 
     Strcat(buf, honored[rn2(SIZE(honored) - 1) + u.uevent.udemigod]);
-    if (is_vampire(gy.youmonst.data))
+    if (is_vampire(youmonst.data))
         Strcat(buf, (flags.female) ? " dark lady" : " dark lord");
-    else if (maybe_polyd(is_elf(gy.youmonst.data), Race_if(PM_ELF)))
+    else if (maybe_polyd(is_elf(youmonst.data), Race_if(PM_ELF)))
         Strcat(buf, (flags.female) ? " hiril" : " hir");
     else
-        Strcat(buf, !is_human(gy.youmonst.data) ? " creature"
+        Strcat(buf, !is_human(youmonst.data) ? " creature"
                       : (flags.female) ? " lady"
                         : " sir");
 }
@@ -5115,7 +5115,7 @@ shopdig(int fall)
         } else
             pline("%s %s your backpack!", Shknam(shkp), grabs);
 
-        for (obj = gi.invent; obj; obj = obj2) {
+        for (obj = invent; obj; obj = obj2) {
             obj2 = obj->nobj;
             if ((obj->owornmask & ~(W_SWAPWEP | W_QUIVER)) != 0
                 || (obj == uswapwep && u.twoweap)
@@ -5315,7 +5315,7 @@ pay_for_damage(const char *dmgstr, boolean cant_mollify)
     }
 
     if ((um_dist(x, y, 1) && !uinshp) || cant_mollify
-        || (money_cnt(gi.invent) + ESHK(shkp)->credit) < cost_of_damage
+        || (money_cnt(invent) + ESHK(shkp)->credit) < cost_of_damage
         || !rn2(50)) {
         getcad(shkp, dmgstr, x, y, uinshp, animal, pursue);
         return;
@@ -5932,7 +5932,7 @@ cad(
 {
     const char *res = 0;
 
-    switch (is_demon(gy.youmonst.data) ? 3 : poly_gender()) {
+    switch (is_demon(youmonst.data) ? 3 : poly_gender()) {
     case 0:
         res = "cad";
         break;
@@ -5951,7 +5951,7 @@ cad(
         break;
     }
     if (altusage) {
-        char *cadbuf = mon_nam(&gy.youmonst); /* snag an output buffer */
+        char *cadbuf = mon_nam(&youmonst); /* snag an output buffer */
 
         /* alternate usage adds a leading double quote and trailing
            exclamation point plus sentence separating spaces */

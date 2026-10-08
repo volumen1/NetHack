@@ -22,87 +22,90 @@ const char
 
 static const struct innate {
     schar ulevel;
-    long *ability;
+    int prop; /* index into u.uprops[]; the hero's intrinsic */
     const char *gainstr, *losestr;
-} arc_abil[] = { { 1, &(HSearching), "", "" },
-                 { 5, &(HStealth), "stealthy", "" },
-                 { 10, &(HFast), "quick", "slow" },
+} arc_abil[] = { { 1, SEARCHING, "", "" },
+                 { 5, STEALTH, "stealthy", "" },
+                 { 10, FAST, "quick", "slow" },
                  { 0, 0, 0, 0 } },
 
-  bar_abil[] = { { 1, &(HPoison_resistance), "", "" },
-                 { 7, &(HFast), "quick", "slow" },
-                 { 15, &(HStealth), "stealthy", "" },
+  bar_abil[] = { { 1, POISON_RES, "", "" },
+                 { 7, FAST, "quick", "slow" },
+                 { 15, STEALTH, "stealthy", "" },
                  { 0, 0, 0, 0 } },
 
-  cav_abil[] = { { 7, &(HFast), "quick", "slow" },
-                 { 15, &(HWarning), "sensitive", "" },
+  cav_abil[] = { { 7, FAST, "quick", "slow" },
+                 { 15, WARNING, "sensitive", "" },
                  { 0, 0, 0, 0 } },
 
-  hea_abil[] = { { 1, &(HPoison_resistance), "", "" },
-                 { 15, &(HWarning), "sensitive", "" },
+  hea_abil[] = { { 1, POISON_RES, "", "" },
+                 { 15, WARNING, "sensitive", "" },
                  { 0, 0, 0, 0 } },
 
-  kni_abil[] = { { 7, &(HFast), "quick", "slow" }, { 0, 0, 0, 0 } },
+  kni_abil[] = { { 7, FAST, "quick", "slow" }, { 0, 0, 0, 0 } },
 
-  mon_abil[] = { { 1, &(HFast), "", "" },
-                 { 1, &(HSleep_resistance), "", "" },
-                 { 1, &(HSee_invisible), "", "" },
-                 { 3, &(HPoison_resistance), "healthy", "" },
-                 { 5, &(HStealth), "stealthy", "" },
-                 { 7, &(HWarning), "sensitive", "" },
-                 { 9, &(HSearching), "perceptive", "unaware" },
-                 { 11, &(HFire_resistance), "cool", "warmer" },
-                 { 13, &(HCold_resistance), "warm", "cooler" },
-                 { 15, &(HShock_resistance), "insulated", "conductive" },
-                 { 17, &(HTeleport_control), "controlled", "uncontrolled" },
+  mon_abil[] = { { 1, FAST, "", "" },
+                 { 1, SLEEP_RES, "", "" },
+                 { 1, SEE_INVIS, "", "" },
+                 { 3, POISON_RES, "healthy", "" },
+                 { 5, STEALTH, "stealthy", "" },
+                 { 7, WARNING, "sensitive", "" },
+                 { 9, SEARCHING, "perceptive", "unaware" },
+                 { 11, FIRE_RES, "cool", "warmer" },
+                 { 13, COLD_RES, "warm", "cooler" },
+                 { 15, SHOCK_RES, "insulated", "conductive" },
+                 { 17, TELEPORT_CONTROL, "controlled", "uncontrolled" },
                  { 0, 0, 0, 0 } },
 
-  pri_abil[] = { { 15, &(HWarning), "sensitive", "" },
-                 { 20, &(HFire_resistance), "cool", "warmer" },
+  pri_abil[] = { { 15, WARNING, "sensitive", "" },
+                 { 20, FIRE_RES, "cool", "warmer" },
                  { 0, 0, 0, 0 } },
 
-  ran_abil[] = { { 1, &(HSearching), "", "" },
-                 { 7, &(HStealth), "stealthy", "" },
-                 { 15, &(HSee_invisible), "", "" },
+  ran_abil[] = { { 1, SEARCHING, "", "" },
+                 { 7, STEALTH, "stealthy", "" },
+                 { 15, SEE_INVIS, "", "" },
                  { 0, 0, 0, 0 } },
 
-  rog_abil[] = { { 1, &(HStealth), "", "" },
-                 { 10, &(HSearching), "perceptive", "" },
+  rog_abil[] = { { 1, STEALTH, "", "" },
+                 { 10, SEARCHING, "perceptive", "" },
                  { 0, 0, 0, 0 } },
 
-  sam_abil[] = { { 1, &(HFast), "", "" },
-                 { 15, &(HStealth), "stealthy", "" },
+  sam_abil[] = { { 1, FAST, "", "" },
+                 { 15, STEALTH, "stealthy", "" },
                  { 0, 0, 0, 0 } },
 
-  tou_abil[] = { { 10, &(HSearching), "perceptive", "" },
-                 { 20, &(HPoison_resistance), "hardy", "" },
+  tou_abil[] = { { 10, SEARCHING, "perceptive", "" },
+                 { 20, POISON_RES, "hardy", "" },
                  { 0, 0, 0, 0 } },
 
-  val_abil[] = { { 1, &(HCold_resistance), "", "" },
-                 { 3, &(HStealth), "stealthy", "" },
-                 { 7, &(HFast), "quick", "slow" },
+  val_abil[] = { { 1, COLD_RES, "", "" },
+                 { 3, STEALTH, "stealthy", "" },
+                 { 7, FAST, "quick", "slow" },
                  { 0, 0, 0, 0 } },
 
-  wiz_abil[] = { { 15, &(HWarning), "sensitive", "" },
-                 { 17, &(HTeleport_control), "controlled", "uncontrolled" },
+  wiz_abil[] = { { 15, WARNING, "sensitive", "" },
+                 { 17, TELEPORT_CONTROL, "controlled", "uncontrolled" },
                  { 0, 0, 0, 0 } },
 
   /* Intrinsics conferred by race */
-  dwa_abil[] = { { 1, &HInfravision, "", "" },
+  dwa_abil[] = { { 1, INFRAVISION, "", "" },
                  { 0, 0, 0, 0 } },
 
-  elf_abil[] = { { 1, &HInfravision, "", "" },
-                 { 4, &HSleep_resistance, "awake", "tired" },
+  elf_abil[] = { { 1, INFRAVISION, "", "" },
+                 { 4, SLEEP_RES, "awake", "tired" },
                  { 0, 0, 0, 0 } },
 
-  gno_abil[] = { { 1, &HInfravision, "", "" },
+  gno_abil[] = { { 1, INFRAVISION, "", "" },
                  { 0, 0, 0, 0 } },
 
-  orc_abil[] = { { 1, &HInfravision, "", "" },
-                 { 1, &HPoison_resistance, "", "" },
+  orc_abil[] = { { 1, INFRAVISION, "", "" },
+                 { 1, POISON_RES, "", "" },
                  { 0, 0, 0, 0 } },
 
   hum_abil[] = { { 0, 0, 0, 0 } };
+
+/* the current hero's intrinsic described by an innate[] entry */
+#define INNATE_ABIL(a) (&u.uprops[(a)->prop].intrinsic)
 
 staticfn void exerper(void);
 staticfn int rnd_attr(void);
@@ -425,7 +428,7 @@ stone_luck(boolean include_uncursed)
     struct obj *otmp;
     long bonchance = 0;
 
-    for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+    for (otmp = invent; otmp; otmp = otmp->nobj)
         if (confers_luck(otmp)) {
             if (otmp->cursed)
                 bonchance -= otmp->quan;
@@ -842,8 +845,8 @@ check_innate_abil(long *ability, long frommask)
             break;
         }
 
-    while (abil && abil->ability) {
-        if ((abil->ability == ability) && (u.ulevel >= abil->ulevel))
+    while (abil && abil->prop) {
+        if ((INNATE_ABIL(abil) == ability) && (u.ulevel >= abil->ulevel))
             return abil;
         abil++;
     }
@@ -893,7 +896,7 @@ is_innate(int propidx)
            ignore innateness if equipment is going to claim responsibility */
         && !u.uprops[propidx].extrinsic)
         return FROM_ROLE;
-    if ((propidx == BLINDED && !haseyes(gy.youmonst.data))
+    if ((propidx == BLINDED && !haseyes(youmonst.data))
         || (propidx == BLND_RES && (HBlnd_resist & FROMFORM) != 0))
         return FROM_FORM;
     return FROM_NONE;
@@ -1027,15 +1030,15 @@ adjabil(int oldlevel, int newlevel)
 
     while (abil || rabil) {
         /* Have we finished with the intrinsics list? */
-        if (!abil || !abil->ability) {
+        if (!abil || !abil->prop) {
             /* Try the race intrinsics */
-            if (!rabil || !rabil->ability)
+            if (!rabil || !rabil->prop)
                 break;
             abil = rabil;
             rabil = 0;
             mask = FROMRACE;
         }
-        prevabil = *(abil->ability);
+        prevabil = *INNATE_ABIL(abil);
         if (oldlevel < abil->ulevel && newlevel >= abil->ulevel) {
             /* Abilities gained at level 1 can never be lost
              * via level loss, only via means that remove _any_
@@ -1044,24 +1047,24 @@ adjabil(int oldlevel, int newlevel)
              * FROMOUTSIDE to avoid such gains.
              */
             if (abil->ulevel == 1)
-                *(abil->ability) |= (mask | FROMOUTSIDE);
+                *INNATE_ABIL(abil) |= (mask | FROMOUTSIDE);
             else
-                *(abil->ability) |= mask;
-            if (!(*(abil->ability) & INTRINSIC & ~mask)) {
+                *INNATE_ABIL(abil) |= mask;
+            if (!(*INNATE_ABIL(abil) & INTRINSIC & ~mask)) {
                 if (*(abil->gainstr))
                     You_feel("%s!", abil->gainstr);
             }
         } else if (oldlevel >= abil->ulevel && newlevel < abil->ulevel) {
-            *(abil->ability) &= ~mask;
-            if (!(*(abil->ability) & INTRINSIC)) {
+            *INNATE_ABIL(abil) &= ~mask;
+            if (!(*INNATE_ABIL(abil) & INTRINSIC)) {
                 if (*(abil->losestr))
                     You_feel("%s!", abil->losestr);
                 else if (*(abil->gainstr))
                     You_feel("less %s!", abil->gainstr);
             }
         }
-        if (prevabil != *(abil->ability)) /* it changed */
-            postadjabil(abil->ability);
+        if (prevabil != *INNATE_ABIL(abil)) /* it changed */
+            postadjabil(INNATE_ABIL(abil));
         abil++;
     }
 
@@ -1219,7 +1222,7 @@ acurr(int chridx)
                there would limit Str to 18/07 [18 + 7] */
             result = max(tmp, 3);
     } else if (chridx == A_CHA) {
-        if (tmp < 18 && (gy.youmonst.data->mlet == S_NYMPH
+        if (tmp < 18 && (youmonst.data->mlet == S_NYMPH
                          || u.umonnum == PM_AMOROUS_DEMON))
             result = 18;
     } else if (chridx == A_CON) {

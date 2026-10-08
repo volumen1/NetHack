@@ -153,10 +153,10 @@ curses_message_win_puts(const char *message, boolean recursed)
         w[0] = (wchar_t) mesg_gi.ttychar;
 #ifdef ENHANCED_SYMBOLS
         if ((windowprocs.wincap2 & WC2_U_UTF8STR) && SYMHANDLING(H_UTF8)
-            && mesg_gi.gm.u) {
+            && mesg_gi.gm.uni) {
             /* FIXME: this won't work with all unicode values (32 bits -> 16
              * bits on Windows) */
-            w[0] = (wchar_t) mesg_gi.gm.u->utf32ch;
+            w[0] = (wchar_t) mesg_gi.gm.uni->utf32ch;
         }
 #endif
         w[1] = L'\0';

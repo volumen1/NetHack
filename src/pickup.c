@@ -171,7 +171,7 @@ query_classes(
         ilets[iletct++] = ' ';
         ilets[iletct++] = 'a';
         ilets[iletct++] = 'A';
-        ilets[iletct++] = (objs == gi.invent ? 'i' : ':');
+        ilets[iletct++] = (objs == invent ? 'i' : ':');
     }
     if (itemcount && menu_on_demand)
         ilets[iletct++] = 'm';
@@ -287,7 +287,7 @@ fatal_corpse_mistake(struct obj *obj, boolean remotely)
     if (u_safe_from_fatal_corpse(obj, st_all) || remotely)
         return FALSE;
 
-    if (poly_when_stoned(gy.youmonst.data) && polymon(PM_STONE_GOLEM)) {
+    if (poly_when_stoned(youmonst.data) && polymon(PM_STONE_GOLEM)) {
         display_nhwindow(WIN_MESSAGE, FALSE); /* --More-- */
         return FALSE;
     }
@@ -723,9 +723,9 @@ pickup(int what) /* should be a long */
          */
         if ((gm.multi && !svc.context.run)
             || (autopickup && !flags.pickup)
-            || notake(gy.youmonst.data)) {
+            || notake(youmonst.data)) {
             check_here(FALSE);
-            if (notake(gy.youmonst.data) && OBJ_AT(u.ux, u.uy)
+            if (notake(youmonst.data) && OBJ_AT(u.ux, u.uy)
                 && (autopickup || flags.pickup))
                 You("are physically incapable of picking anything up.");
             return 0;
@@ -778,7 +778,7 @@ pickup(int what) /* should be a long */
 
  menu_pickup:
         if (n > 0)
-            reset_justpicked(gi.invent);
+            reset_justpicked(invent);
         n_tried = n;
         for (n_picked = i = 0; i < n; i++) {
             res = pickup_object(pick_list[i].item.a_obj, pick_list[i].count,
@@ -811,7 +811,7 @@ pickup(int what) /* should be a long */
             obj = *objchain_p;
             lcount = min(obj->quan, (long) count);
             n_tried++;
-            reset_justpicked(gi.invent);
+            reset_justpicked(invent);
             if (pickup_object(obj, lcount, FALSE) > 0)
                 n_picked++; /* picked something */
             goto end_query;
@@ -880,7 +880,7 @@ pickup(int what) /* should be a long */
                 lcount = obj->quan;
 
             if (!n_tried) /* reset just before the first item picked */
-                reset_justpicked(gi.invent);
+                reset_justpicked(invent);
 
             n_tried++;
             if ((res = pickup_object(obj, lcount, FALSE)) < 0)
@@ -892,8 +892,8 @@ pickup(int what) /* should be a long */
     }
 
     if (!u.uswallow) {
-        if (hides_under(gy.youmonst.data))
-            (void) hideunder(&gy.youmonst);
+        if (hides_under(youmonst.data))
+            (void) hideunder(&youmonst);
 
         /* position may need updating (invisible hero) */
         if (n_picked)
@@ -1159,7 +1159,7 @@ query_objlist(const char *qstr,        /* query string */
         fake_hero_object = cg.zeroobj;
         fake_hero_object.quan = 1L; /* not strictly necessary... */
         any.a_obj = &fake_hero_object;
-        tmpglyph = mon_to_glyph(&gy.youmonst, rn2_on_display_rng);
+        tmpglyph = mon_to_glyph(&youmonst, rn2_on_display_rng);
         map_glyphinfo(0, 0, tmpglyph, 0U, &tmpglyphinfo);
         add_menu(win, &tmpglyphinfo, &any,
                  /* fake inventory letter, no group accelerator */
@@ -1587,7 +1587,7 @@ carry_count(struct obj *obj,            /* object to pick up... */
 
     savequan = obj->quan;
     saveowt = obj->owt;
-    umoney = money_cnt(gi.invent);
+    umoney = money_cnt(invent);
     iw = max_capacity();
 
     if (count != savequan) {
@@ -1688,7 +1688,7 @@ carry_count(struct obj *obj,            /* object to pick up... */
 
     if (!container)
         Strcpy(where, "here"); /* slightly shorter form */
-    if (gi.invent || umoney) {
+    if (invent || umoney) {
         prefx1 = "you cannot ";
         prefx2 = "";
         suffx = " any more";
@@ -1723,9 +1723,9 @@ lift_object(
        and for boulder picked up by hero poly'd into a giant; override
        availability of open inventory slot iff not already carrying one */
     if (obj->otyp == LOADSTONE
-        || (obj->otyp == BOULDER && throws_rocks(gy.youmonst.data))) {
+        || (obj->otyp == BOULDER && throws_rocks(youmonst.data))) {
         if (inv_cnt(FALSE) < invlet_basic || !carrying(obj->otyp)
-            || merge_choice(gi.invent, obj))
+            || merge_choice(invent, obj))
             return 1; /* lift regardless of current situation */
         /* if we reach here, we're out of slots and already have at least
            one of these, so treat this one more like a normal item
@@ -1745,7 +1745,7 @@ lift_object(
                /* [exception for gold coins will have to change
                    if silver/copper ones ever get implemented] */
                && inv_cnt(FALSE) >= invlet_basic
-               && !merge_choice(gi.invent, obj)) {
+               && !merge_choice(invent, obj)) {
         /* if there is some gold here (and we haven't already skipped it),
            we aren't limited by the 52 item limit for it, but caller and
            "grandcaller" aren't prepared to skip stuff and then pickup
@@ -1827,7 +1827,7 @@ pickup_object(
                && engulfing_u(obj->ocarry)) {
         You_cant("pick %s up.", ysimple_name(obj));
         return 0;
-    } else if (obj->oartifact && !touch_artifact(obj, &gy.youmonst)) {
+    } else if (obj->oartifact && !touch_artifact(obj, &youmonst)) {
         return 0;
     } else if (obj->otyp == CORPSE) {
         if (fatal_corpse_mistake(obj, telekinesis)
@@ -1993,7 +1993,7 @@ encumber_msg(void)
             break;
         case 3:
             You("%s under your heavy load.  Movement is very hard.",
-                stagger(gy.youmonst.data, "stagger"));
+                stagger(youmonst.data, "stagger"));
             break;
         default:
             You("%s move a handspan with this load!",
@@ -2014,7 +2014,7 @@ encumber_msg(void)
             break;
         case 3:
             You("%s under your load.  Movement is still very hard.",
-                stagger(gy.youmonst.data, "stagger"));
+                stagger(youmonst.data, "stagger"));
             break;
         }
         disp.botl = TRUE;
@@ -2061,7 +2061,7 @@ able_to_loot(
         You("cannot %s things that are deep in the %s.", verb,
             hliquid(is_lava(x, y) ? "lava" : "water"));
         return FALSE;
-    } else if (nolimbs(gy.youmonst.data)) {
+    } else if (nolimbs(youmonst.data)) {
         pline("Without limbs, you cannot %s anything.", verb);
         return FALSE;
     } else if (looting && !freehand()) {
@@ -2199,7 +2199,7 @@ doloot_core(void)
         /* "Can't do that while carrying so much stuff." */
         return ECMD_OK;
     }
-    if (nohands(gy.youmonst.data)) {
+    if (nohands(youmonst.data)) {
         You("have no hands!"); /* not `body_part(HAND)' */
         return ECMD_OK;
     }
@@ -2363,7 +2363,7 @@ reverse_loot(void)
 
     if (!rn2(3)) {
         /* n objects: 1/(n+1) chance per object, 1/(n+1) to fall off end */
-        for (n = inv_cnt(TRUE), otmp = gi.invent; otmp;
+        for (n = inv_cnt(TRUE), otmp = invent; otmp;
              --n, otmp = otmp->nobj)
             if (!rn2(n + 1)) {
                 prinv("You find old loot:", otmp, 0L);
@@ -2373,7 +2373,7 @@ reverse_loot(void)
     }
 
     /* find a money object to mess with */
-    for (goldob = gi.invent; goldob; goldob = goldob->nobj)
+    for (goldob = invent; goldob; goldob = goldob->nobj)
         if (goldob->oclass == COIN_CLASS) {
             contribution = ((long) rnd(5) * goldob->quan + 4L) / 5L;
             if (contribution < goldob->quan)
@@ -2453,7 +2453,7 @@ loot_mon(struct monst *mtmp, int *passed_info, boolean *prev_loot)
                 x_monnam(mtmp, ARTICLE_THE, (char *) 0,
                          SUPPRESS_SADDLE, FALSE));
         if ((c = yn_function(qbuf, ynqchars, 'n', TRUE)) == 'y') {
-            if (nolimbs(gy.youmonst.data)) {
+            if (nolimbs(youmonst.data)) {
                 You_cant("do that without limbs."); /* not body_part(HAND) */
                 return 0;
             }
@@ -2745,7 +2745,7 @@ out_container(struct obj *obj)
         obj->owt = weight(obj);
     }
 
-    if (obj->oartifact && !touch_artifact(obj, &gy.youmonst))
+    if (obj->oartifact && !touch_artifact(obj, &youmonst))
         return 0;
 
     if (fatal_corpse_mistake(obj, FALSE))
@@ -2949,7 +2949,7 @@ explain_container_prompt(boolean more_containers)
 boolean
 u_handsy(void)
 {
-    if (nohands(gy.youmonst.data)) {
+    if (nohands(youmonst.data)) {
         You("have no hands!"); /* not `body_part(HAND)' */
         return FALSE;
     } else if (!freehand()) {
@@ -3042,8 +3042,8 @@ use_container(
     }
     /* might put something in if carrying anything other than just the
        container itself (invent is not the container or has a next object) */
-    inokay = (gi.invent != 0 && (gi.invent != gc.current_container
-                                || gi.invent->nobj));
+    inokay = (invent != 0 && (invent != gc.current_container
+                                || invent->nobj));
     /* might take something out if container isn't empty */
     outokay = Has_contents(gc.current_container);
     if (!outokay) /* preformat the empty-container message */
@@ -3157,12 +3157,12 @@ use_container(
         }
         /* recalculate 'inokay' in case something was just taken out and
            inventory is no longer empty or no longer just the container */
-        inokay = (gi.invent && (gi.invent != gc.current_container
-                               || gi.invent->nobj));
+        inokay = (invent && (invent != gc.current_container
+                               || invent->nobj));
     }
 
     if ((loot_in || stash_one) && !inokay) {
-        You("don't have anything%s to %s.", gi.invent ? " else" : "",
+        You("don't have anything%s to %s.", invent ? " else" : "",
             stash_one ? "stash" : "put in");
         loot_in = stash_one = FALSE;
     }
@@ -3245,7 +3245,7 @@ traditional_loot(boolean put_in)
 
     if (put_in) {
         action = "put in";
-        objlist = &gi.invent;
+        objlist = &invent;
         actionfunc = in_container;
         checkfunc = ck_bag;
     } else {
@@ -3291,7 +3291,7 @@ menu_loot(int retry, boolean put_in)
         mflags = (ALL_TYPES | UNPAID_TYPES | BUCX_TYPES | CHOOSE_ALL
                   | JUSTPICKED );
         n = query_category(buf,
-                           put_in ? gi.invent : gc.current_container->cobj,
+                           put_in ? invent : gc.current_container->cobj,
                            mflags, &pick_list, PICK_ANY);
             /* when paranoid_confirm:A is set, 'A' by itself implies
                'A'+'a' which will be followed by a confirmation prompt;
@@ -3328,7 +3328,7 @@ menu_loot(int retry, boolean put_in)
             firstobj = gc.current_container->cobj;
         } else {
             inout_func = in_container;
-            firstobj = gi.invent;
+            firstobj = invent;
         }
         /*
          * Note:  for put_in, current_container might be destroyed during
@@ -3347,8 +3347,8 @@ menu_loot(int retry, boolean put_in)
             }
         }
     } else if (put_in && loot_justpicked
-               && count_justpicked(gi.invent) == 1) {
-        otmp = find_justpicked(gi.invent);
+               && count_justpicked(invent) == 1) {
+        otmp = find_justpicked(invent);
         if (otmp) {
             n_looted = 1;
             if (count > 0 && count < otmp->quan) {
@@ -3367,7 +3367,7 @@ menu_loot(int retry, boolean put_in)
             gc.current_container->cknown = 1;
         Sprintf(buf, "%s what?", action);
         n = query_objlist(buf,
-                          put_in ? &gi.invent : &(gc.current_container->cobj),
+                          put_in ? &invent : &(gc.current_container->cobj),
                           mflags, &pick_list, PICK_ANY,
                           all_categories ? allow_all : allow_category);
         if (n) {
@@ -3533,7 +3533,7 @@ choose_tip_container_menu(void)
             add_menu(win, &tmpglyphinfo, &any, 0, 0, ATR_NONE,
                      clr, doname(otmp), MENU_ITEMFLAGS_NONE);
         }
-    if (gi.invent) {
+    if (invent) {
         add_menu_str(win, "");
         any.a_obj = &dummyobj;
         /* use 'i' for inventory unless there are so many
@@ -3607,7 +3607,7 @@ dotip(void)
                 /* pick one container via menu or ... */
                 if ((res = choose_tip_container_menu()) != ECMD_OK)
                     return res;
-                /* else pick-from-gi.invent below */
+                /* else pick-from-invent below */
             } else {
                 for (cobj = svl.level.objects[cc.x][cc.y]; cobj;
                      cobj = nobj) {
@@ -3910,7 +3910,7 @@ tipcontainer_gettarget(
 
 #if 0   /* [skip potential early return so that menu response is needed
          *  regardless of whether other containers are being carried] */
-    int n_conts = count_target_containers(gi.invent, box);
+    int n_conts = count_target_containers(invent, box);
 
     if (n_conts < 1 || !u_handsy()) {
         if (n_conts >= 1)
@@ -3952,7 +3952,7 @@ tipcontainer_gettarget(
 
             n_conts = 0;
         }
-        for (otmp = gi.invent; otmp; otmp = otmp->nobj) {
+        for (otmp = invent; otmp; otmp = otmp->nobj) {
             if (otmp == box)
                 continue;
             /* skip non-containers; bag of tricks passes Is_container() test,

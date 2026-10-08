@@ -944,7 +944,6 @@ void
 u_init_misc(void)
 {
     int i;
-    struct u_roleplay tmpuroleplay = u.uroleplay; /* set by rcfile options */
 
     flags.female = flags.initgend;
     flags.beginner = TRUE;
@@ -956,7 +955,7 @@ u_init_misc(void)
     (void) memset((genericptr_t) &ubirthday, 0, sizeof(ubirthday));
     (void) memset((genericptr_t) &urealtime, 0, sizeof(urealtime));
 
-    u.uroleplay = tmpuroleplay; /* restore options set via rcfile */
+    u.uroleplay = cfg_roleplay; /* options set via rcfile */
 
 #if 0  /* documentation of more zero values as desirable */
     u.usick_cause[0] = 0;
@@ -1373,8 +1372,8 @@ void
 u_init_inventory_attrs(void)
 {
     gl.lastinvnr = 51;
-    while (gi.invent)
-        useupall(gi.invent);
+    while (invent)
+        useupall(invent);
 
     u.umoney0 = 0;
     u_init_role();
@@ -1398,7 +1397,7 @@ void
 u_init_skills_discoveries(void)
 {
     struct obj *otmp;
-    for (otmp = gi.invent; otmp; otmp = otmp->nobj)
+    for (otmp = invent; otmp; otmp = otmp->nobj)
         ini_inv_use_obj(otmp);
 
     skill_init(skills_for_role());

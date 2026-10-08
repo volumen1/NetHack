@@ -593,7 +593,7 @@ dump_everything(
     putstr(0, 0, "");
     putstr(0, 0, "Inventory:");
     (void) display_inventory((char *) 0, TRUE);
-    container_contents(gi.invent, TRUE, TRUE, FALSE);
+    container_contents(invent, TRUE, TRUE, FALSE);
     enlightenment((BASICENLIGHTENMENT | MAGICENLIGHTENMENT),
                   (how >= PANICKED) ? ENL_GAMEOVERALIVE : ENL_GAMEOVERDEAD);
     putstr(0, 0, "");
@@ -625,7 +625,7 @@ disclose(int how, boolean taken)
     char qbuf[QBUFSZ];
     boolean ask = FALSE;
 
-    if (gi.invent && !done_stopprint) {
+    if (invent && !done_stopprint) {
         if (taken)
             Sprintf(qbuf, "Do you want to see what you had when you %s?",
                     (how == QUIT) ? "quit" : "died");
@@ -639,7 +639,7 @@ disclose(int how, boolean taken)
                to force display_pickinv() to avoid using WIN_INVENT */
             iflags.force_invmenu = FALSE;
             (void) display_inventory((char *) 0, TRUE);
-            container_contents(gi.invent, TRUE, TRUE, FALSE);
+            container_contents(invent, TRUE, TRUE, FALSE);
         }
         if (c == 'q')
             done_stopprint++;
@@ -750,7 +750,7 @@ savelife(int how)
         /* might drop hero onto a trap that kills her all over again */
         expels(u.ustuck, u.ustuck->data, TRUE);
     } else if (u.ustuck) {
-        if (Upolyd && sticks(gy.youmonst.data))
+        if (Upolyd && sticks(youmonst.data))
             You("release %s.", mon_nam(u.ustuck));
         else
             pline("%s releases you.", Monnam(u.ustuck));
@@ -1257,7 +1257,7 @@ really_done(int how)
          * Both are optional, so do it once here instead of duplicating
          * it in both of those places.
          */
-        for (obj = gi.invent; obj; obj = nextobj) {
+        for (obj = invent; obj; obj = nextobj) {
             nextobj = obj->nobj;
             discover_object(obj->otyp, TRUE, TRUE, FALSE);
             /* observe_object not necessary after discover_object */
@@ -1326,7 +1326,7 @@ really_done(int how)
     {
         int deepest = deepest_lev_reached(FALSE);
 
-        umoney = money_cnt(gi.invent);
+        umoney = money_cnt(invent);
         tmp = u.umoney0;
         umoney += hidden_gold(TRUE); /* accumulate gold from containers */
         tmp = umoney - tmp;          /* net gain */
@@ -1437,7 +1437,7 @@ really_done(int how)
             for (i = 0; i < val->size; i++) {
                 val->list[i].count = 0L;
             }
-        get_valuables(gi.invent);
+        get_valuables(invent);
 
         /* add points for collected valuables */
         for (val = gv.valuables; val->list; val++)
@@ -1449,7 +1449,7 @@ really_done(int how)
                 }
 
         /* count the points for artifacts */
-        artifact_score(gi.invent, TRUE, endwin);
+        artifact_score(invent, TRUE, endwin);
 
         gv.viz_array[0][0] |= IN_SIGHT; /* need visibility for naming */
         mtmp = gm.mydogs;
@@ -1482,11 +1482,11 @@ really_done(int how)
         dump_forward_putstr(endwin, 0, pbuf, done_stopprint);
 
         if (!done_stopprint)
-            artifact_score(gi.invent, FALSE, endwin); /* list artifacts */
+            artifact_score(invent, FALSE, endwin); /* list artifacts */
 #ifdef DUMPLOG
         dump_redirect(TRUE);
         if (iflags.in_dumplog)
-            artifact_score(gi.invent, FALSE, 0);
+            artifact_score(invent, FALSE, 0);
         dump_redirect(FALSE);
 #endif
 

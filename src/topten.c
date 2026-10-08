@@ -381,7 +381,7 @@ writexlentry(FILE *rfile, struct toptenentry *tt, int how)
             aligns[1 - u.ualignbase[A_ORIGINAL]].filecode);
     Fprintf(rfile, "%cflags=0x%lx", XLOG_SEP, encodexlogflags());
     Fprintf(rfile, "%cgold=%ld", XLOG_SEP,
-            money_cnt(gi.invent) + hidden_gold(TRUE));
+            money_cnt(invent) + hidden_gold(TRUE));
     Fprintf(rfile, "%cwish_cnt=%ld", XLOG_SEP, u.uconduct.wishes);
     Fprintf(rfile, "%carti_wish_cnt=%ld", XLOG_SEP, u.uconduct.wisharti);
     Fprintf(rfile, "%cbones=%ld", XLOG_SEP, u.uroleplay.numbones);

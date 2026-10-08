@@ -228,7 +228,7 @@ flooreffects(
                 }
                 mtmp->mtrapped = 0;
             } else {
-                if (!Passes_walls && !throws_rocks(gy.youmonst.data)) {
+                if (!Passes_walls && !throws_rocks(youmonst.data)) {
                     losehp(Maybe_Half_Phys(rnd(15)),
                            "squished under a boulder", NO_KILLER_PREFIX);
                     goto deletedwithboulder;
@@ -925,7 +925,7 @@ doddrop(void)
 {
     int result = ECMD_OK;
 
-    if (!gi.invent) {
+    if (!invent) {
         You("have nothing to drop.");
         return ECMD_OK;
     }
@@ -991,7 +991,7 @@ menu_drop(int retry)
         all_categories = (retry == -2);
     } else if (flags.menu_style == MENU_FULL) {
         all_categories = FALSE;
-        n = query_category("Drop what type of items?", gi.invent,
+        n = query_category("Drop what type of items?", invent,
                            (UNPAID_TYPES | ALL_TYPES | CHOOSE_ALL
                             | BUC_BLESSED | BUC_CURSED | BUC_UNCURSED
                             | BUC_UNKNOWN | JUSTPICKED | INCLUDE_VENOM),
@@ -1038,7 +1038,7 @@ menu_drop(int retry)
          * Dropping a burning potion of oil while levitating can cause
          * an explosion which might destroy some of hero's inventory,
          * so the old code
-         *      for (otmp = gi.invent; otmp; otmp = otmp2) {
+         *      for (otmp = invent; otmp; otmp = otmp2) {
          *          otmp2 = otmp->nobj;
          *          n_dropped += drop(otmp);
          *      }
@@ -1052,23 +1052,23 @@ menu_drop(int retry)
          * ought to halt the traversal or perhaps ask player whether
          * to halt it.
          */
-        bypass_objlist(gi.invent, FALSE); /* clear bypass bit for invent */
-        while ((otmp = nxt_unbypassed_obj(gi.invent)) != 0) {
+        bypass_objlist(invent, FALSE); /* clear bypass bit for invent */
+        while ((otmp = nxt_unbypassed_obj(invent)) != 0) {
             if (drop_everything || all_categories || allow_category(otmp))
                 n_dropped += ((drop(otmp) & ECMD_TIME) != 0) ? 1 : 0;
         }
         /* we might not have dropped everything (worn armor, welded weapon,
            cursed loadstones), so reset any remaining inventory to normal */
-        bypass_objlist(gi.invent, FALSE);
-    } else if (drop_justpicked && count_justpicked(gi.invent) == 1) {
+        bypass_objlist(invent, FALSE);
+    } else if (drop_justpicked && count_justpicked(invent) == 1) {
         /* drop the just picked item automatically, if only one stack */
-        otmp = find_justpicked(gi.invent);
+        otmp = find_justpicked(invent);
         if (otmp)
             n_dropped += ((menudrop_split(otmp, justpicked_quan)
                            & ECMD_TIME) != 0) ? 1 : 0;
     } else {
         /* should coordinate with perm invent, maybe not show worn items */
-        n = query_objlist("What would you like to drop?", &gi.invent,
+        n = query_objlist("What would you like to drop?", &invent,
                           (USE_INVLET | INVORDER_SORT | INCLUDE_VENOM),
                           &pick_list, PICK_ANY,
                           all_categories ? allow_all : allow_category);
@@ -1077,18 +1077,18 @@ menu_drop(int retry)
              * picklist[] contains a set of pointers into inventory, but
              * as soon as something gets dropped, they might become stale
              * (see the autopick code above for an explanation).
-             * Just checking to see whether one is still in the gi.invent
+             * Just checking to see whether one is still in the invent
              * chain is not sufficient validation since destroyed items
              * will be freed and items we've split here might have already
              * reused that memory and put the same pointer value back into
-             * gi.invent.  Ditto for using invlet to validate.  So we start
-             * by setting bypass on all of gi.invent, then check each pointer
-             * to verify that it is in gi.invent and has that bit set.
+             * invent.  Ditto for using invlet to validate.  So we start
+             * by setting bypass on all of invent, then check each pointer
+             * to verify that it is in invent and has that bit set.
              */
-            bypass_objlist(gi.invent, TRUE);
+            bypass_objlist(invent, TRUE);
             for (i = 0; i < n; i++) {
                 otmp = pick_list[i].item.a_obj;
-                for (otmp2 = gi.invent; otmp2; otmp2 = otmp2->nobj)
+                for (otmp2 = invent; otmp2; otmp2 = otmp2->nobj)
                     if (otmp2 == otmp)
                         break;
                 if (!otmp2 || !otmp2->bypass)
@@ -1097,7 +1097,7 @@ menu_drop(int retry)
                 n_dropped += ((menudrop_split(otmp, pick_list[i].count)
                                & ECMD_TIME) != 0) ? 1 : 0;
             }
-            bypass_objlist(gi.invent, FALSE); /* reset gi.invent to normal */
+            bypass_objlist(invent, FALSE); /* reset invent to normal */
             free((genericptr_t) pick_list);
         }
     }
@@ -1110,7 +1110,7 @@ staticfn boolean
 u_stuck_cannot_go(const char *updn)
 {
     if (u.ustuck) {
-        if (u.uswallow || !sticks(gy.youmonst.data)) {
+        if (u.uswallow || !sticks(youmonst.data)) {
             You("are %s, and cannot go %s.",
                 !u.uswallow ? "being held"
                 : digests(u.ustuck->data) ? "swallowed"
@@ -1157,7 +1157,7 @@ dodown(void)
             if (ELevitation & W_ARTI) {
                 struct obj *obj;
 
-                for (obj = gi.invent; obj; obj = obj->nobj) {
+                for (obj = invent; obj; obj = obj->nobj) {
                     if (obj->oartifact
                         && artifact_has_invprop(obj, LEVITATION)) {
                         if (obj->age < svm.moves)
@@ -1257,7 +1257,7 @@ dodown(void)
         const char *down_or_thru = trap->ttyp == HOLE ? "down" : "through";
         const char *actn = u_locomotion("jump");
 
-        if (gy.youmonst.data->msize >= MZ_HUGE) {
+        if (youmonst.data->msize >= MZ_HUGE) {
             char qbuf[QBUFSZ];
 
             You("don't fit %s easily.", down_or_thru);
@@ -1433,7 +1433,7 @@ u_collide_m(struct monst *mtmp)
        it was already here.  Randomly move you to an adjacent spot
        or else the monster to any nearby location.  Prior to 3.3.0
        the latter was done unconditionally. */
-    if (!rn2(2) && enexto(&cc, u.ux, u.uy, gy.youmonst.data)
+    if (!rn2(2) && enexto(&cc, u.ux, u.uy, youmonst.data)
         && next2u(cc.x, cc.y))
         u_on_newpos(cc.x, cc.y); /*[maybe give message here?]*/
     else
@@ -2015,7 +2015,7 @@ hellish_smoke_mesg(void)
 
     if (In_hell(&u.uz) && svl.level.flags.temperature > 0)
         You("%s smoke...",
-              olfaction(gy.youmonst.data) ? "smell" : "sense");
+              olfaction(youmonst.data) ? "smell" : "sense");
 }
 
 /* give a message when the level temperature is different from previous */

@@ -322,7 +322,7 @@ drinkfountain(void)
             morehungry(rn1(20, 11));
             exercise(A_CON, FALSE);
             /* this is more severe than rndcurse() */
-            for (obj = gi.invent; obj; obj = nextobj) {
+            for (obj = invent; obj; obj = nextobj) {
                 nextobj = obj->nobj;
                 if (obj->oclass != COIN_CLASS && !obj->cursed && !rn2(5)) {
                     curse(obj);
@@ -501,14 +501,14 @@ dipfountain(struct obj *obj)
     case 28: /* Strange feeling */
         pline("An urge to take a bath overwhelms you.");
         {
-            long money = money_cnt(gi.invent);
+            long money = money_cnt(invent);
             struct obj *otmp, *nextobj;
 
             if (money > 10) {
                 /* Amount to lose.  Might get rounded up as fountains don't
                  * pay change... */
                 money = somegold(money) / 10;
-                for (otmp = gi.invent; otmp && money > 0; otmp = nextobj) {
+                for (otmp = invent; otmp && money > 0; otmp = nextobj) {
                     nextobj = otmp->nobj;
                     if (otmp->oclass == COIN_CLASS) {
                         int denomination = objects[otmp->otyp].oc_cost;
@@ -791,7 +791,7 @@ dipsink(struct obj *obj)
            breathless for this message */
         pline("A wisp of vapor rises up...");
         /* NB: potionbreathe calls trycall or makeknown as appropriate */
-        if (!breathless(gy.youmonst.data) || haseyes(gy.youmonst.data))
+        if (!breathless(youmonst.data) || haseyes(youmonst.data))
             potionbreathe(obj);
         break;
     }

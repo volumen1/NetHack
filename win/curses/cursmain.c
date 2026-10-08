@@ -1003,8 +1003,8 @@ curses_print_glyph(
     curses_putch(wid, x, y, ch,
 #ifdef ENHANCED_SYMBOLS
                  (SYMHANDLING(H_UTF8)
-                  && glyphinfo->gm.u && glyphinfo->gm.u->utf8str)
-                      ? glyphinfo->gm.u : NULL,
+                  && glyphinfo->gm.uni && glyphinfo->gm.uni->utf8str)
+                      ? glyphinfo->gm.uni : NULL,
 #endif
                  &attr);
 

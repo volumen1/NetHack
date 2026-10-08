@@ -158,7 +158,7 @@ const char *
 empty_handed(void)
 {
     return uarmg ? "empty handed" /* gloves imply hands */
-           : humanoid(gy.youmonst.data)
+           : humanoid(youmonst.data)
              /* hands but no weapon and no gloves */
              ? "bare handed"
                /* alternate phrasing for paws or lack of hands */
@@ -365,7 +365,7 @@ dowield(void)
 
     /* May we attempt this? */
     gm.multi = 0;
-    if (cantwield(gy.youmonst.data)) {
+    if (cantwield(youmonst.data)) {
         pline("Don't be ridiculous!");
         return ECMD_FAIL;
     }
@@ -470,7 +470,7 @@ doswapweapon(void)
 
     /* May we attempt this? */
     gm.multi = 0;
-    if (cantwield(gy.youmonst.data)) {
+    if (cantwield(youmonst.data)) {
         pline("Don't be ridiculous!");
         return ECMD_FAIL;
     }
@@ -524,7 +524,7 @@ doquiver_core(const char *verb) /* "ready" or "fire" */
     /* Since the quiver isn't in your hands, don't check cantwield(),
        will_weld(), touch_petrifies(), etc. */
     gm.multi = 0;
-    if (!gi.invent) {
+    if (!invent) {
         /* could accept '-' to empty quiver, but there's no point since
            inventory is empty so uquiver is already Null */
         You("have nothing to ready for firing.");
@@ -721,7 +721,7 @@ wield_tool(struct obj *obj,
         }
         return FALSE;
     }
-    if (cantwield(gy.youmonst.data)) {
+    if (cantwield(youmonst.data)) {
         You_cant("hold %s strongly enough.", more_than_1 ? "them" : "it");
         return FALSE;
     }
@@ -767,7 +767,7 @@ can_twoweapon(void)
 {
     struct obj *otmp;
 
-    if (!could_twoweap(gy.youmonst.data)) {
+    if (!could_twoweap(youmonst.data)) {
         if (Upolyd)
             You_cant("use two weapons in your current form.");
         else

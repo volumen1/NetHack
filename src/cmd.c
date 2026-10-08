@@ -895,7 +895,7 @@ RESTORE_WARNING_FORMAT_NONLITERAL
 int
 domonability(void)
 {
-    struct permonst *uptr = gy.youmonst.data;
+    struct permonst *uptr = youmonst.data;
     boolean might_hide = (is_hider(uptr) || hides_under(uptr));
     char c = '\0';
 
@@ -923,12 +923,12 @@ domonability(void)
         return domindblast();
     else if (u.umonnum == PM_GREMLIN) {
         if (IS_FOUNTAIN(levl[u.ux][u.uy].typ)) {
-            if (split_mon(&gy.youmonst, (struct monst *) 0))
+            if (split_mon(&youmonst, (struct monst *) 0))
                 dryup(u.ux, u.uy, TRUE);
         } else if (is_pool(u.ux, u.uy)) {
             /* is_pool: might be wearing water walking boots or amulet of
                magical breathing */
-            (void) split_mon(&gy.youmonst, (struct monst *) 0);
+            (void) split_mon(&youmonst, (struct monst *) 0);
         } else {
             There("is no fountain here.");
         }
@@ -941,7 +941,7 @@ domonability(void)
             pline("Unfortunately sound does not carry well through rock.");
         else
             aggravate();
-    } else if (is_vampire(uptr) || is_vampshifter(&gy.youmonst)) {
+    } else if (is_vampire(uptr) || is_vampshifter(&youmonst)) {
         return dopoly();
     } else if (u.usteed && can_breathe(u.usteed->data)) {
         (void) pet_ranged_attk(u.usteed, TRUE);
@@ -4513,7 +4513,7 @@ there_cmd_menu_self(winid win, coordxy x, coordxy y, int *act UNUSED)
     }
 
 
-    if (gi.invent) {
+    if (invent) {
         mcmd_addmenu(win, MCMD_INVENTORY, "Inventory"), ++K;
         mcmd_addmenu(win, MCMD_DROP, "Drop items"), ++K;
     }

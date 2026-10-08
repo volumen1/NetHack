@@ -91,12 +91,56 @@ extern struct restore_info restoreinfo;
 extern NEARDATA struct savefile_info sfcap, sfrestinfo, sfsaveinfo;
 extern const int shield_static[];
 
-extern NEARDATA struct obj *uarm, *uarmc, *uarmh, *uarms, *uarmg, *uarmf,
-    *uarmu, /* under-wear, so to speak */
-    *uskin, *uamul, *uleft, *uright, *ublindf, *uwep, *uswapwep, *uquiver;
-extern NEARDATA struct obj *uchain; /* defined only when punished */
-extern NEARDATA struct obj *uball;
-extern NEARDATA struct you u;
+/*
+ * Multiplayer: everything that belongs to one hero lives in a struct hero.
+ * 'cur_hero' points at the hero currently acting (or being acted upon);
+ * the macros below let the existing single-hero code keep using u,
+ * youmonst-style names, invent, and the equipment slots unchanged.
+ * See doc/multiplayer-design.md, section 3.1.
+ */
+#define MAX_HEROES 6
+
+struct hero {
+    struct you you;          /* formerly the global 'u' */
+    struct monst mon;        /* formerly gy.youmonst */
+    struct obj *inv;         /* formerly gi.invent */
+    /* Equipment slots, formerly the globals uarm, uwep, etc.  The member
+       names drop the leading 'u' so that offsetof(struct hero, wep) isn't
+       mangled by the macros below. */
+    struct obj *arm, *armc, *armh, *arms, *armg, *armf,
+        *armu, /* under-wear, so to speak */
+        *skin, *amul, *left, *right, *blindf, *wep, *swapwep, *quiver;
+    struct obj *chain; /* defined only when punished */
+    struct obj *ball;
+};
+
+extern NEARDATA struct hero heroes[MAX_HEROES];
+extern NEARDATA struct hero *cur_hero;
+
+#define u        (cur_hero->you)
+#define youmonst (cur_hero->mon)
+#define invent   (cur_hero->inv)
+#define uarm     (cur_hero->arm)
+#define uarmc    (cur_hero->armc)
+#define uarmh    (cur_hero->armh)
+#define uarms    (cur_hero->arms)
+#define uarmg    (cur_hero->armg)
+#define uarmf    (cur_hero->armf)
+#define uarmu    (cur_hero->armu)
+#define uskin    (cur_hero->skin)
+#define uamul    (cur_hero->amul)
+#define uleft    (cur_hero->left)
+#define uright   (cur_hero->right)
+#define ublindf  (cur_hero->blindf)
+#define uwep     (cur_hero->wep)
+#define uswapwep (cur_hero->swapwep)
+#define uquiver  (cur_hero->quiver)
+#define uchain   (cur_hero->chain)
+#define uball    (cur_hero->ball)
+
+/* roleplay options (permablind, nudist, ...) as read from the config file;
+   u_init copies them into the new hero's u.uroleplay */
+extern NEARDATA struct u_roleplay cfg_roleplay;
 extern NEARDATA time_t ubirthday;
 extern NEARDATA struct u_realtime urealtime;
 
@@ -469,7 +513,6 @@ struct instance_globals_i {
     int in_doagain;
     boolean in_mklev;
     boolean in_steed_dismounting;
-    struct obj *invent;
 
     /* do_wear.c */
     /* starting equipment gets auto-worn at beginning of new game,
@@ -1088,7 +1131,6 @@ struct instance_globals_y {
 
     /* decl.c */
     int y_maze_max;
-    struct monst youmonst;
 
     /* pline.c */
     /* work buffer for You(), &c and verbalize() */

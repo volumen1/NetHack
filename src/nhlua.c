@@ -1733,8 +1733,8 @@ nhl_gamestate(lua_State *L)
         gg.gmst_moves = 0L;
 
         gl.lastinvnr = 51;
-        while (gi.invent)
-            useupall(gi.invent);
+        while (invent)
+            useupall(invent);
         while ((otmp = gg.gmst_invent) != NULL) {
             wornmask = otmp->owornmask;
             otmp->owornmask = 0L;
@@ -1766,7 +1766,7 @@ nhl_gamestate(lua_State *L)
     } else if (!reststate && !gg.gmst_stored) {
         /* store game state */
         gg.gmst_moves = svm.moves;
-        while ((otmp = gi.invent) != NULL) {
+        while ((otmp = invent) != NULL) {
             wornmask = otmp->owornmask;
             setnotworn(otmp);
             freeinv(otmp);
@@ -1963,33 +1963,33 @@ nhl_meta_u_index(lua_State *L)
 {
     static const struct {
         const char *name;
-        void *ptr;
+        size_t offset; /* within struct you */
         int type;
     } ustruct[] = {
-        { "ux", &(u.ux), ANY_INT16 },
-        { "uy", &(u.uy), ANY_INT16 },
-        { "dx", &(u.dx), ANY_SCHAR },
-        { "dy", &(u.dy), ANY_SCHAR },
-        { "dz", &(u.dz), ANY_SCHAR },
-        { "tx", &(u.tx), ANY_INT16 },
-        { "ty", &(u.ty), ANY_INT16 },
-        { "ulevel", &(u.ulevel), ANY_INT },
-        { "ulevelmax", &(u.ulevelmax), ANY_INT },
-        { "uhunger", &(u.uhunger), ANY_INT },
-        { "nv_range", &(u.nv_range), ANY_INT },
-        { "xray_range", &(u.xray_range), ANY_INT },
-        { "umonster", &(u.umonster), ANY_INT },
-        { "umonnum", &(u.umonnum), ANY_INT },
-        { "mh", &(u.mh), ANY_INT },
-        { "mhmax", &(u.mhmax), ANY_INT },
-        { "mtimedone", &(u.mtimedone), ANY_INT },
-        { "dlevel", &(u.uz.dlevel), ANY_INT16 },
-        { "dnum", &(u.uz.dnum), ANY_INT16 },
-        { "uluck", &(u.uluck), ANY_SCHAR },
-        { "uhp", &(u.uhp), ANY_INT },
-        { "uhpmax", &(u.uhpmax), ANY_INT },
-        { "uen", &(u.uen), ANY_INT },
-        { "uenmax", &(u.uenmax), ANY_INT },
+        { "ux", offsetof(struct you, ux), ANY_INT16 },
+        { "uy", offsetof(struct you, uy), ANY_INT16 },
+        { "dx", offsetof(struct you, dx), ANY_SCHAR },
+        { "dy", offsetof(struct you, dy), ANY_SCHAR },
+        { "dz", offsetof(struct you, dz), ANY_SCHAR },
+        { "tx", offsetof(struct you, tx), ANY_INT16 },
+        { "ty", offsetof(struct you, ty), ANY_INT16 },
+        { "ulevel", offsetof(struct you, ulevel), ANY_INT },
+        { "ulevelmax", offsetof(struct you, ulevelmax), ANY_INT },
+        { "uhunger", offsetof(struct you, uhunger), ANY_INT },
+        { "nv_range", offsetof(struct you, nv_range), ANY_INT },
+        { "xray_range", offsetof(struct you, xray_range), ANY_INT },
+        { "umonster", offsetof(struct you, umonster), ANY_INT },
+        { "umonnum", offsetof(struct you, umonnum), ANY_INT },
+        { "mh", offsetof(struct you, mh), ANY_INT },
+        { "mhmax", offsetof(struct you, mhmax), ANY_INT },
+        { "mtimedone", offsetof(struct you, mtimedone), ANY_INT },
+        { "dlevel", offsetof(struct you, uz.dlevel), ANY_INT16 },
+        { "dnum", offsetof(struct you, uz.dnum), ANY_INT16 },
+        { "uluck", offsetof(struct you, uluck), ANY_SCHAR },
+        { "uhp", offsetof(struct you, uhp), ANY_INT },
+        { "uhpmax", offsetof(struct you, uhpmax), ANY_INT },
+        { "uen", offsetof(struct you, uen), ANY_INT },
+        { "uenmax", offsetof(struct you, uenmax), ANY_INT },
     };
     const char *tkey = luaL_checkstring(L, 2);
     int i;
@@ -1997,11 +1997,12 @@ nhl_meta_u_index(lua_State *L)
     /* FIXME: doesn't really work, eg. negative values for u.dx */
     for (i = 0; i < SIZE(ustruct); i++)
         if (!strcmp(tkey, ustruct[i].name)) {
-            return nhl_push_anything(L, ustruct[i].type, ustruct[i].ptr);
+            return nhl_push_anything(L, ustruct[i].type,
+                                     (char *) &u + ustruct[i].offset);
         }
 
     if (!strcmp(tkey, "inventory")) {
-        nhl_push_obj(L, gi.invent);
+        nhl_push_obj(L, invent);
         return 1;
     } else if (!strcmp(tkey, "role")) {
         lua_pushstring(L, gu.urole.name.m);
@@ -2038,8 +2039,8 @@ RESTORE_WARNING_UNREACHABLE_CODE
 staticfn int
 nhl_u_clear_inventory(lua_State *L UNUSED)
 {
-    while (gi.invent)
-        useupall(gi.invent);
+    while (invent)
+        useupall(invent);
     return 0;
 }
 

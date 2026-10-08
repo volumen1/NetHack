@@ -364,7 +364,7 @@ release_hero(struct monst *mon)
     if (mon == u.ustuck) {
         if (u.uswallow) {
             expels(mon, mon->data, TRUE);
-        } else if (!sticks(gy.youmonst.data)) {
+        } else if (!sticks(youmonst.data)) {
             unstuck(mon); /* let go */
             You("get released!");
         }
@@ -608,8 +608,8 @@ mind_blast(struct monst *mtmp)
                         /* hero has no way to hide as monster but
                             check for that theoretical case anyway */
                         && U_AP_TYPE != M_AP_MONSTER) {
-                gy.youmonst.m_ap_type = M_AP_NOTHING;
-                gy.youmonst.mappearance = 0;
+                youmonst.m_ap_type = M_AP_NOTHING;
+                youmonst.mappearance = 0;
                 newsym(u.ux, u.uy);
             }
             pline("It locks on to your %s!",
@@ -649,7 +649,7 @@ mind_blast(struct monst *mtmp)
 void
 m_everyturn_effect(struct monst *mtmp)
 {
-    boolean is_u = (mtmp == &gy.youmonst) ? TRUE : FALSE;
+    boolean is_u = (mtmp == &youmonst) ? TRUE : FALSE;
     coordxy x = is_u ? u.ux : mtmp->mx,
             y = is_u ? u.uy : mtmp->my;
 
@@ -671,7 +671,7 @@ m_everyturn_effect(struct monst *mtmp)
 void
 m_postmove_effect(struct monst *mtmp)
 {
-    boolean is_u = (mtmp == &gy.youmonst) ? TRUE : FALSE;
+    boolean is_u = (mtmp == &youmonst) ? TRUE : FALSE;
     coordxy x = is_u ? u.ux0 : mtmp->mx,
             y = is_u ? u.uy0 : mtmp->my;
 
@@ -806,7 +806,7 @@ dochug(struct monst *mtmp)
             pline("%s whispers at thin air.",
                   cansee(mtmp->mux, mtmp->muy) ? Monnam(mtmp) : "It");
 
-            if (is_demon(gy.youmonst.data)) {
+            if (is_demon(youmonst.data)) {
                 /* "Good hunting, brother" */
                 if (!tele_restrict(mtmp))
                     (void) rloc(mtmp, RLOC_MSG);
@@ -881,7 +881,7 @@ dochug(struct monst *mtmp)
        to move. Movement itself is handled by the m_move() function. */
     if (!nearby || mtmp->mflee || scared || mtmp->mconf || mtmp->mstun
         || (mtmp->minvis && !rn2(3))
-        || (mdat->mlet == S_LEPRECHAUN && !findgold(gi.invent)
+        || (mdat->mlet == S_LEPRECHAUN && !findgold(invent)
             && (findgold(mtmp->minvent) || rn2(2)))
         || (is_wanderer(mdat) && !rn2(4)) || (Conflict && !mtmp->iswiz)
         || (!mtmp->mcansee && !rn2(4)) || mtmp->mpeaceful) {
@@ -1052,7 +1052,7 @@ mon_would_consume_item(struct monst *mtmp, struct obj *otmp)
 boolean
 itsstuck(struct monst *mtmp)
 {
-    if (sticks(gy.youmonst.data) && mtmp == u.ustuck && !u.uswallow) {
+    if (sticks(youmonst.data) && mtmp == u.ustuck && !u.uswallow) {
         pline_mon(mtmp, "%s cannot escape from you!", Monnam(mtmp));
         return TRUE;
     }
@@ -1143,7 +1143,7 @@ leppie_avoidance(struct monst *mtmp)
     if (mtmp->data == &mons[PM_LEPRECHAUN]
         && ((lepgold = findgold(mtmp->minvent))
             && (lepgold->quan
-                > ((ygold = findgold(gi.invent)) ? ygold->quan : 0L))))
+                > ((ygold = findgold(invent)) ? ygold->quan : 0L))))
         return TRUE;
 
     return FALSE;
@@ -1866,8 +1866,8 @@ m_move(struct monst *mtmp, int after)
 
         if (!mtmp->mcansee
             || (should_see && Invis && !perceives(ptr) && rn2(11))
-            || is_obj_mappear(&gy.youmonst, STRANGE_OBJECT) || u.uundetected
-            || (is_obj_mappear(&gy.youmonst, GOLD_PIECE) && !likes_gold(ptr))
+            || is_obj_mappear(&youmonst, STRANGE_OBJECT) || u.uundetected
+            || (is_obj_mappear(&youmonst, GOLD_PIECE) && !likes_gold(ptr))
             || (mtmp->mpeaceful && !mtmp->isshk) /* allow shks to follow */
             || ((monsndx(ptr) == PM_STALKER || ptr->mlet == S_BAT
                  || ptr->mlet == S_LIGHT) && !rn2(3)))
@@ -1893,7 +1893,7 @@ m_move(struct monst *mtmp, int after)
     if ((!mtmp->mpeaceful || !rn2(10)) && (!Is_rogue_level(&u.uz))) {
         boolean in_line = (lined_up(mtmp)
              && (distmin(mtmp->mx, mtmp->my, mtmp->mux, mtmp->muy)
-                 <= (throws_rocks(gy.youmonst.data) ? 20
+                 <= (throws_rocks(youmonst.data) ? 20
                                                     : (ACURRSTR / 2 + 1))));
 
         if (appr != 1 || !in_line) {
@@ -2202,7 +2202,7 @@ set_apparxy(struct monst *mtmp)
     boolean notseen, notthere, gotu;
     int displ;
     coordxy mx = mtmp->mux, my = mtmp->muy;
-    long umoney = money_cnt(gi.invent);
+    long umoney = money_cnt(invent);
 
     /*
      * do cheapest and/or most likely tests first
@@ -2322,8 +2322,8 @@ stuff_prevents_passage(struct monst *mtmp)
 {
     struct obj *chain, *obj;
 
-    if (mtmp == &gy.youmonst) {
-        chain = gi.invent;
+    if (mtmp == &youmonst) {
+        chain = invent;
     } else {
         chain = mtmp->minvent;
     }

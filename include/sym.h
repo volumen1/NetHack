@@ -144,7 +144,7 @@ struct custom_symbol {
 };
 struct custom_urep {
     int glyphidx;
-    struct unicode_representation u;
+    struct unicode_representation uni;
 };
 struct custom_nhcolor {
     int glyphidx;

@@ -492,8 +492,7 @@ Each milestone should end in something that runs.
 - The build has one configuration: `sys/unix/hints/linux.501`, curses only
   (`multiw-1.501` and `multiw-2.501` no longer offer a choice).
 - `test/smoke.py` drives the installed game in a pseudo-terminal: new game,
-  save, restore, quit. CI (`.github/workflows/build.yml`) builds and runs it
-  on every push.
+  save, restore, quit. Run it after building (see README).
 - **Not done yet:** platform `#ifdef` blocks inside `src/`, `include/` and
   `sys/share/` (MSDOS, VMS, AMIGA, WIN32, TTY_GRAPHICS, and so on) and their
   headers are still there. They're inactive in our build, and get removed

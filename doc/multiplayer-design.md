@@ -20,10 +20,13 @@ with upstream is an explicit non-goal.
 | Levels | The party starts together and is free to split across levels. |
 | Time | One global clock, using the hybrid turn model (§4). |
 | Monster targeting | Monsters attack the closest hero (§5). |
-| Map | Map memory is shared by the whole party (§6). |
+| Map | Map memory and allies' live monster sightings are shared by the whole party (§6). |
 | Discoveries | Shared by the whole party. |
 | Death | The player rejoins with a new character (§9). |
 | Quest | One quest branch per role. Branches for all 13 roles are pre-created at game start (§8). |
+| Ascension | One hero ascending ends the game for everyone (§9). |
+| Experience | Per hero, to the killer only. Monster difficulty uses the highest XL on the level (§12). |
+| Peacefuls | Angering one makes it hostile to the whole party (§5.2). |
 
 Non-goals for v1: public servers, anti-cheat, spectators of games you're
 not in, cross-game bones, non-Unix platforms, any window port other than
@@ -198,8 +201,9 @@ players wait.
 - Free actions don't take the lock. They only read state, and running them
   while another hero's prompt is open is accepted as safe.
 
-**Open:** do the prompt and window timeouts feel right in practice? The
-prototype must test this early (M5).
+**Decided:** start with window `W` = 1.5 s, danger lock `T` = 45 s, and a
+prompt timeout of 30 s. Make all three server settings, and retune them
+during M5 playtests.
 
 ### 4.3 AFK and disconnected players
 
@@ -249,9 +253,9 @@ for each world turn:
 - **Engulfing, holding, sticky attacks** (`u.ustuck`): per hero, already
   in `struct you`. A monster can engulf or hold only one hero.
 - **Stealing, seduction, item-specific attacks:** these act on the target.
-- **Peaceful/hostile status:** stays per monster, not per hero. **Open:**
-  should angering a peaceful monster make it hostile to the whole party?
-  Proposed yes; that's simplest and matches co-op.
+- **Peaceful/hostile status:** stays per monster, not per hero.
+  **Decided:** angering a peaceful monster makes it hostile to the whole
+  party.
 - **Elbereth and scare effects:** checked against the square of the hero
   being attacked, as now.
 - **Covetous monsters, the Wizard of Yendor's harassment:** target the
@@ -283,9 +287,17 @@ for each world turn:
 - **One-time detection** (scroll, crystal ball, spell, potion):
   results go into shared memory, so the whole party benefits.
 - **Allies are always shown** with their own glyph and color, even out of
-  line of sight, as long as they're on the same level. **Open:** do we
-  also show other heroes' current monster sightings live? Proposed no; a
-  hero sees only monsters they can perceive themselves.
+  line of sight, as long as they're on the same level.
+- **Decided: allies' monster sightings are shared live.** A hero sees
+  every monster that any ally on the same level currently perceives, in
+  addition to their own. Ongoing telepathy and warning stay personal: a
+  telepath shares only what they're currently sensing, as part of their
+  live sightings.
+- **Exception for accidental PvP (Proposed):** while a hero is blind or
+  hallucinating, they lose the ally overlay and shared sightings and
+  see only what they perceive themselves. Otherwise they could never mistake
+  an ally for a monster (§6.3). A hallucinating hero's sightings aren't
+  shared with the party either.
 
 ### 6.2 Audit: which state belongs to whom
 
@@ -295,7 +307,7 @@ for each world turn:
 | Luck, prayer timeout, god anger, alignment record | Hero | |
 | Discoveries (identified object types, user-given names) | **Shared** | Decided. |
 | Map memory | **Shared** | §6.1. |
-| Shop bill and debt (`struct eshk`) | Hero | A bill per hero. Only the guilty hero is chased by an angry shopkeeper; **Open** whether other heroes in the shop are blocked from leaving. |
+| Shop bill and debt (`struct eshk`) | Hero | **Decided:** a bill per hero. The shopkeeper blocks the door only for a hero who owes money; other heroes come and go freely. Only the guilty hero is chased by an angry shopkeeper. |
 | Temple priest, donations | Hero | |
 | Vault guard | Hero | The guard handles the hero inside the vault. |
 | Oracle consultations | Hero | |
@@ -401,25 +413,23 @@ in milestone M7, one file at a time.
 When a hero dies, their player rejoins with a new character in the same
 game.
 
-### 9.2 Proposed details (to confirm)
+### 9.2 Details
 
 - **Death record:** the dead character's score goes on the leaderboard as
   a normal entry, with the game ID.
 - **Corpse and gear:** no bones file inside the same game. The dead
   character's inventory drops on the death square, so allies (or the
-  player's new character) can recover it. A ghost is optional; proposed
-  no ghost in v1.
+  player's new character) can recover it. **Decided:** no ghost in v1.
 - **New character:** the player picks role, race, gender and alignment
-  as at game start. They start at XL1 with normal starting gear, at the
-  up stairs of DL1. If the role is new to the party, its quest portal is
+  as at game start. **Decided:** they start at XL1 with normal starting
+  gear, at the normal starting position (the up stairs of DL1). If the role is new to the party, its quest portal is
   added (§8).
-- **Death penalties for the party:** none, except the lost character.
+- **Death penalties for the party:** **Decided:** none, other than losing
+  the character.
 - **Pets** of the dead hero become unowned (§5.3).
-- **Ascension:** a hero ascends alone with the Amulet. Their score is
-  recorded and the player can **Open:** rejoin with a new character, or
-  spectate. **Open:** does the game end for everyone when one hero
-  ascends?
-- **Game end:** the game ends when the host ends it, or (proposed) when
+- **Ascension:** **Decided:** when one hero ascends with the Amulet, the
+  game ends for everyone. The ascending hero gets the ascension score.
+- **Game end:** the game also ends when the host ends it, or (proposed) when
   no player has been connected for a set time. Every character still
   alive gets a leaderboard entry marked "alive at game end".
 
@@ -477,21 +487,16 @@ Each milestone should end in something that runs.
 ## 12. Balance (to tune after M9 playtests)
 
 - **Monster difficulty:** today it depends on hero XL and depth.
-  **Proposed:** use the highest XL among heroes on the level.
+  **Decided:** use the highest XL among heroes on the level.
 - **Spawn rate:** **Proposed:** scale by the number of heroes on the
   level, with diminishing returns (for example `sqrt(n)`).
-- **Experience:** **Proposed:** goes to the killer only, which fits
-  separate scores. **Open:** share some XP with adjacent allies?
+- **Experience:** **Decided:** XP is per hero and goes to the killer
+  only. Nothing is shared.
 - **Loot and wishes:** leave as in solo play. Scarcity encourages sharing.
 
 ---
 
 ## 13. Open questions
 
-1. Prompt and window timeouts: are 1.5 s / 45 s / 30 s right? (§4.1, §4.2)
-2. Does an angered peaceful monster turn hostile to the whole party? (§5.2)
-3. Can other heroes leave a shop while one hero owes money? (§6.2)
-4. Show allies' live monster sightings, or only your own? (§6.1)
-5. Does one hero's ascension end the game for everyone? (§9.2)
-6. Rejoin details in §9.2: start position, ghost, penalties.
-7. Should XP be shared? (§12)
+None at the moment. Items still marked **Proposed** are defaults we'll keep
+unless playtesting says otherwise.

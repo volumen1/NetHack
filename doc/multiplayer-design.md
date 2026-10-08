@@ -293,7 +293,7 @@ for each world turn:
   addition to their own. Ongoing telepathy and warning stay personal: a
   telepath shares only what they're currently sensing, as part of their
   live sightings.
-- **Exception for accidental PvP (Proposed):** while a hero is blind or
+- **Exception for accidental PvP (Decided):** while a hero is blind or
   hallucinating, they lose the ally overlay and shared sightings and
   see only what they perceive themselves. Otherwise they could never mistake
   an ally for a monster (§6.3). A hallucinating hero's sightings aren't
@@ -470,7 +470,7 @@ Each milestone should end in something that runs.
 
 | # | Milestone | Proves |
 |---|---|---|
-| M0 | Fork cleanup: remove other ports/platforms, build only curses on Linux. | Clean base. |
+| M0 | Fork cleanup: remove other ports/platforms, build only curses on Linux. **Done** (§11.1). | Clean base. |
 | M1 | Hero indirection (§3.1). Two heroes on one level, **hot-seat** on one terminal, alternating turns. | The `cur_hero` approach works; most code runs unchanged. |
 | M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. | Several players, several screens. |
 | M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. | Multiple heroes in the same fight. |
@@ -481,6 +481,23 @@ Each milestone should end in something that runs.
 | M8 | Per-role quest branches (§8). | Everyone gets their quest. |
 | M9 | Death/rejoin, leaderboard, whole-game save/restore (§9, §10). | A full game can be played start to finish. |
 | M10 | Observer messages (`pline_obs`), party chat, balance tuning (§12). | Polish. |
+
+
+### 11.1 M0 notes
+
+- Removed: `sys/{amiga,atari,mac68k,msdos,vms,windows,libnh}`, the tty, X11,
+  Qt, GEM, macOS, Win32, chain and shim window ports, all sound libraries,
+  the PDCurses submodules, `outdated/`, cross-compiling support, and the
+  Xcode, BSD and macOS build files.
+- The build has one configuration: `sys/unix/hints/linux.501`, curses only
+  (`multiw-1.501` and `multiw-2.501` no longer offer a choice).
+- `test/smoke.py` drives the installed game in a pseudo-terminal: new game,
+  save, restore, quit. CI (`.github/workflows/build.yml`) builds and runs it
+  on every push.
+- **Not done yet:** platform `#ifdef` blocks inside `src/`, `include/` and
+  `sys/share/` (MSDOS, VMS, AMIGA, WIN32, TTY_GRAPHICS, and so on) and their
+  headers are still there. They're inactive in our build, and get removed
+  when the refactors touch those files.
 
 ---
 

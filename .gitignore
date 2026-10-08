@@ -58,7 +58,6 @@ make.prefs
 *.lastcodeanalysissucceeded
 # VS 2017 caches data into the hidden directory .vs
 .vs
-win/win32/vs/obj/*
 # Win32-specific ignores end
 .DS_Store
 # ms-dos 
@@ -71,10 +70,7 @@ include/patchlev.h
 doc/guidebk.txt
 # folders compiler, target objs, binary results
 djgpp/
-src/msdos_o/
-msdos-binary/
 dat/NHTILES.BMP
-dat/msdoshlp.txt
 src/host_o/
 util/djgpp-linux64-gcc550.tar.bz2
 util/djgpp-osx-gcc550.tar.bz2
@@ -97,6 +93,7 @@ bundle/*
 *.user
 util/*.lib
 util/*.exp
-submodules/CHKSUMS.tmp
-sys/amiga/regex/
 __pycache__/
+
+# default in-tree install location (make install)
+playground/

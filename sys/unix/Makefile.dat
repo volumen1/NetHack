@@ -5,84 +5,12 @@
 # Root of source tree:
 NHSROOT=..
 
-# for Atari
-# SHELL=E:/GEMINI2/MUPFEL.TTP
-# UUDECODE=uudecode
-
 VARDAT = bogusmon data engrave epitaph rumors oracles
 
 all:	$(VARDAT) spec_levs quest_levs
 
 ../util/makedefs:
 	(cd ../util ; $(MAKE) makedefs)
-
-../util/tile2x11:
-	(cd ../util ; $(MAKE) tile2x11)
-
-../util/tile2beos:
-	(cd ../util ; $(MAKE) tile2beos)
-
-../util/tile2bmp:
-	(cd ../util ; $(MAKE) tile2bmp)
-
-x11tiles: ../util/tile2x11 ../win/share/monsters.txt ../win/share/objects.txt \
-				../win/share/other.txt \
-                                ../win/share/monsters.txt \
-				../win/share/decals.txt
-	../util/tile2x11 ../win/share/monsters.txt ../win/share/objects.txt \
-				../win/share/other.txt \
-                                -grayscale ../win/share/monsters.txt \
-				../win/share/decals.txt
-
-beostiles: ../util/tile2beos ../win/share/monsters.txt \
-				../win/share/objects.txt \
-				../win/share/other.txt
-	../util/tile2beos ../win/share/monsters.txt \
-				../win/share/objects.txt \
-				../win/share/other.txt
-
-nhtiles.bmp: ../util/tile2bmp ../win/share/monsters.txt \
-				../win/share/objects.txt \
-				../win/share/other.txt
-	../util/tile2bmp $@
-
-NetHack.ad: ../win/X11/NetHack.ad
-# handle "#define foo bar" -lines
-	grep ^#define ../win/X11/NetHack.ad | \
-		sed -e 's/^#define/s/g' -e 's/  */ /g' \
-		    -e 's/$$/ g/g' > NetHack.ad.tmp
-	grep -v ^#define ../win/X11/NetHack.ad | \
-		sed -f NetHack.ad.tmp > NetHack.ad
-	-rm -f NetHack.ad.tmp
-
-pet_mark.xbm: ../win/X11/pet_mark.xbm
-	cp ../win/X11/pet_mark.xbm pet_mark.xbm
-
-pilemark.xbm: ../win/X11/pilemark.xbm
-	cp ../win/X11/pilemark.xbm pilemark.xbm
-
-rip.xpm: ../win/X11/rip.xpm
-	cp ../win/X11/rip.xpm rip.xpm
-
-mapbg.xpm: ../win/gnome/mapbg.xpm
-	cp ../win/gnome/mapbg.xpm mapbg.xpm
-
-nhsplash.xpm: ../win/share/nhsplash.xpm
-	cp ../win/share/nhsplash.xpm nhsplash.xpm
-
-nethack.icns: ../win/share/nhicns.uu
-	$(UUDECODE) ../win/share/nhicns.uu
-
-Info.plist: ../win/Qt/Info.pli
-	cp ../win/Qt/Info.pli Info.plist
-
-title.img:
-	# cp ../win/gem/title.img title.img
-	$(UUDECODE) ../win/gem/title.uu
-
-GEM_RSC.RSC:
-	# cp ../win/gem/GEM_RSC.RSC GEM_RSC.RSC
-	$(UUDECODE) ../win/gem/gem_rsc.uu
 
 nhdat: $(DATDLB)
 	( LC_ALL=C ; ../util/dlb cf nhdat $(DATDLB) )
@@ -120,9 +48,6 @@ clean:
 	-rm -f spec_levs quest_levs gitinfo.txt
 
 spotless: clean
-	-rm -f nhdat $(VARDAT) \
-		x11tiles pet_mark.xbm pilemark.xbm rip.xpm mapbg.xpm \
-		GEM_RSC.RSC title.img NetHack.ad \
-		nhsplash.xpm nhtiles.bmp beostiles
+	-rm -f nhdat $(VARDAT)
 
 #eof#

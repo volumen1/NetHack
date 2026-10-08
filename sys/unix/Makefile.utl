@@ -487,26 +487,16 @@ TEXT_IO = tiletext.o tiletxt.o $(OALLOC) $(ONAMING)
 GIFREADERS = gifread.o
 PPMWRITERS = ppmwrite.o
 
-tileutils: tilemap gif2txt txt2ppm tile2x11
+tileutils: tilemap gif2txt txt2ppm
 
 gif2txt: $(GIFREADERS) $(TEXT_IO)
 	$(CLINK) $(LFLAGS) -o gif2txt $(GIFREADERS) $(TEXT_IO) $(LIBS)
 txt2ppm: $(PPMWRITERS) $(TEXT_IO)
 	$(CLINK) $(LFLAGS) -o txt2ppm $(PPMWRITERS) $(TEXT_IO) $(LIBS)
 
-tile2x11: tile2x11.o $(TEXT_IO) $(HACKLIB)
-	$(CLINK) $(LFLAGS) -o tile2x11 tile2x11.o $(TEXT_IO) \
-		$(HACKLIB) $(LIBS)
-
 tile2bmp: tile2bmp.o $(TEXT_IO) $(HACKLIB)
 	$(CLINK) $(LFLAGS) -o tile2bmp tile2bmp.o $(TEXT_IO) $(HACKLIB)
 
-tile2pict: tile2pict.o $(TEXT_IO) $(HACKLIB)
-	$(CLINK) $(LFLAGS) -o tile2pict tile2pict.o $(TEXT_IO) $(HACKLIB)
-
-tile2beos: tile2beos.o $(TEXT_IO) $(HACKLIB)
-	$(CXXLINK) $(LFLAGS) -o tile2beos tile2beos.o \
-		$(TEXT_IO) $(HACKLIB) -lbe
 
 #--compiling and linking in one step leaves extra debugging files (in their
 #  own subdirectories!) on OSX; compile and link separately to suppress
@@ -535,28 +525,6 @@ ppmwrite.o: $(CCRESP) ../win/share/ppmwrite.c $(CONFIG_H) ../win/share/tile.h
 
 tile2bmp.o: $(CCRESP) ../win/share/tile2bmp.c $(HACK_H) ../win/share/tile.h
 	$(CC) $(CFLAGS) $(CSTD) -I../win/share -c ../win/share/tile2bmp.c -o $@
-
-tile2pict.o: $(CCRESP) ../util/tile2pict.c $(HACK_H) ../win/share/tile.h
-	$(CC) $(CFLAGS) $(CSTD) -I../win/share -c ../util/tile2pict.c -o $@
-
-tile2x11.o: $(CCRESP) ../win/X11/tile2x11.c $(HACK_H) ../win/share/tile.h \
-						../include/tile2x11.h
-	$(CC) $(CFLAGS) $(CSTD) -I../win/share -c ../win/X11/tile2x11.c -o $@
-
-tile2beos.o: $(CCRESP) ../win/BeOS/tile2beos.cpp $(HACK_H) ../win/share/tile.h
-	$(CXX) $(CFLAGS) $(CSTD) -I../win/share -c ../win/BeOS/tile2beos.cpp -o $@
-
-# note: tileedit.cpp was developed for Qt2 and will not compile using Qt5
-tileedit.o: $(CCRESP) ../win/Qt/tileedit.cpp
-	$(CXX) -I../include -I$(QTDIR)/include ../win/Qt/tileedit.cpp
-tileedit: tileedit.o $(TEXT_IO)
-	$(QTDIR)/bin/moc -o tileedit.moc tileedit.h
-	$(CXXLINK) -o tileedit -L$(QTDIR)/lib tileedit.o $(TEXT_IO) -lqt
-
-uudecode: uudecode.o
-	$(CLINK) $(LFLAGS) -o uudecode uudecode.o $(LIBS)
-uudecode.o: $(CCRESP) ../sys/share/uudecode.c
-	$(CC) $(CFLAGS) $(CSTD) -c -o uudecode.o ../sys/share/uudecode.c
 
 # using dependencies like
 #	../src/foo::
@@ -620,7 +588,7 @@ clean: clean-fixup
 # obsolete dgn_comp and lev_comp could be left around from 3.6.x
 spotless: clean
 	-rm -f makedefs recover dlb $(HACKLIB)
-	-rm -f gif2txt txt2ppm tile2x11 \
-		tilemap tileedit tile2bmp tile2pict uudecode
+	-rm -f gif2txt txt2ppm \
+		tilemap tile2bmp
 	-rm -f dgn_comp* dgn_lex.c dgn_yacc.c ../include/dgn_comp.h \
 		lev_comp* lev_lex.c lev_yacc.c ../include/lev_comp.h

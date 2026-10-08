@@ -1,3 +1,27 @@
+         Multiplayer NetHack fork
+
+This repository is a hard fork of NetHack 5.0.1 (work-in-progress) that is
+being turned into a cooperative multiplayer game for 5-6 players.  The plan
+lives in doc/multiplayer-design.md.
+
+The fork builds on Linux only, with the curses interface only.  Other
+platforms, window ports, and sound libraries have been removed.
+
+To build, install into ./playground, and run the smoke test:
+
+    sudo apt-get install libncurses-dev     # or your distro's equivalent
+    sh sys/unix/setup.sh sys/unix/hints/linux.501
+    make -j8 install
+    python3 test/smoke.py playground
+
+To play:
+
+    ./playground/nethack
+
+The upstream NetHack README follows.
+
+                        - - - - - - - - - - -
+
          NetHack 5.0.1 -- General information
 
 

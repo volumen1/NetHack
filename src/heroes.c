@@ -84,6 +84,15 @@ static const struct hero_global {
 
 #undef HG
 
+/*
+ * Display state that belongs to a player's screen rather than to a hero.
+ * In hot-seat play all heroes share screen 0; in a server game each hero
+ * has its own (see doc/multiplayer-design.md, section 10).
+ */
+static char *screen_stash[MAX_HEROES];
+static struct hero *input_hero = 0; /* whose turn it is */
+
+staticfn void switch_screen(int, int);
 staticfn size_t hero_globals_size(void);
 staticfn void stash_globals(struct hero *);
 staticfn void unstash_globals(struct hero *);
@@ -132,6 +141,36 @@ unstash_globals(struct hero *h)
     }
 }
 
+/* display.c's record of what is on screen, which is per screen */
+staticfn void
+switch_screen(int from, int to)
+{
+    size_t len = sizeof gg.gbuf + sizeof gg.gbuf_start + sizeof gg.gbuf_stop;
+    char *p;
+
+    if (!screen_stash[from])
+        screen_stash[from] = (char *) alloc((unsigned) len);
+    p = screen_stash[from];
+    (void) memcpy(p, gg.gbuf, sizeof gg.gbuf), p += sizeof gg.gbuf;
+    (void) memcpy(p, gg.gbuf_start, sizeof gg.gbuf_start),
+        p += sizeof gg.gbuf_start;
+    (void) memcpy(p, gg.gbuf_stop, sizeof gg.gbuf_stop);
+
+    curses_switch_player(to);
+    /* the player whose turn it is gets the usual More>> stops; the
+       others just watch */
+    curses_mp_watching(input_hero && to != input_hero->screen);
+
+    if ((p = screen_stash[to]) != 0) {
+        (void) memcpy(gg.gbuf, p, sizeof gg.gbuf), p += sizeof gg.gbuf;
+        (void) memcpy(gg.gbuf_start, p, sizeof gg.gbuf_start),
+            p += sizeof gg.gbuf_start;
+        (void) memcpy(gg.gbuf_stop, p, sizeof gg.gbuf_stop);
+    } else {
+        clear_glyph_buffer(); /* a new screen shows nothing yet */
+    }
+}
+
 /* number of heroes in the game */
 int
 hero_count(void)
@@ -153,6 +192,8 @@ switch_hero(struct hero *h)
     /* remember how the outgoing hero looks, for other heroes' maps */
     cur_hero->glyph = hero_glyph;
     stash_globals(cur_hero);
+    if (h->screen != cur_hero->screen)
+        switch_screen(cur_hero->screen, h->screen);
     cur_hero = h;
     unstash_globals(cur_hero);
     gv.vision_full_recalc = 1;
@@ -280,6 +321,20 @@ add_extra_heroes(void)
         struct hero *h = &heroes[i];
 
         h->active = TRUE;
+        h->screen = first->screen;
+        if (i < mp_player_count()) {
+            /* server game: this player has their own terminal */
+            int scr = curses_add_player(mp_player_ttyfd(i),
+                                        mp_player_term(i));
+
+            if (scr < 0)
+                panic("can't open a screen for player %d (%s)", i + 1,
+                      mp_player_name(i));
+            /* curses_add_player() made the new screen current; go back
+               until switch_hero() moves the whole display over */
+            curses_switch_player(first->screen);
+            h->screen = scr;
+        }
         /* the new hero starts from a copy of the first hero's scattered
            globals; reset everything that must not be shared */
         stash_globals(h);
@@ -304,9 +359,13 @@ add_extra_heroes(void)
         svc.context.next_attrib_check = 600L;
         gl.lastinvnr = 51;
 
-        Sprintf(qbuf, "Player %d, what is your name?", i + 1);
-        getlin(qbuf, namebuf);
-        (void) mungspaces(namebuf);
+        if (i < mp_player_count()) {
+            Strcpy(namebuf, mp_player_name(i)); /* from nh-connect */
+        } else {
+            Sprintf(qbuf, "Player %d, what is your name?", i + 1);
+            getlin(qbuf, namebuf);
+            (void) mungspaces(namebuf);
+        }
         if (!*namebuf || *namebuf == '\033')
             Sprintf(namebuf, "Hero%d", i + 1);
         (void) strncpy(svp.plname, namebuf, PL_NSIZ - 1);
@@ -331,18 +390,65 @@ add_extra_heroes(void)
     if (want > 1) {
         docrt();
         bot();
+        refresh_other_screens();
     }
 }
 
-/* tell the players whose turn it is (hot-seat play) */
+/* tell the players whose turn it is */
 void
 announce_hero_turn(void)
 {
     if (hero_count() < 2)
         return;
+    if (mp_player_count() > 1) {
+        /* everyone has a screen; the others get told by
+           refresh_other_screens() */
+        input_hero = cur_hero;
+        curses_mp_watching(FALSE);
+        /* what arrived while watching has been on screen; start the turn
+           on a fresh line, as before any command */
+        clear_nhwindow(WIN_MESSAGE);
+        pline("It is your turn.");
+        return;
+    }
     docrt();
     bot();
     pline("%s, it is your turn.", cur_hero->name);
+}
+
+/*
+ * Server game: bring every waiting player's screen up to date from their
+ * own hero's point of view, and tell them whose turn it is.  Called after
+ * each action that took time.
+ */
+void
+refresh_other_screens(void)
+{
+    struct hero *was = cur_hero, *h;
+    int i, j;
+
+    input_hero = was;
+    if (mp_player_count() < 2)
+        return;
+    for (i = 0; i < MAX_HEROES; i++) {
+        h = &heroes[i];
+        if (!h->active || h->screen == was->screen)
+            continue;
+        switch_hero(h);
+        vision_recalc(0);
+        docrt_flags(docrtNocls); /* redraw from map memory and vision */
+        for (j = 0; j < MAX_HEROES; j++) /* allies, even out of sight */
+            if (heroes[j].active && &heroes[j] != h)
+                newsym(heroes[j].you.ux, heroes[j].you.uy);
+        if (h->waiting_for != was) {
+            pline("It is %s's turn.", was->name);
+            h->waiting_for = was;
+        }
+        bot();
+        flush_screen(1);
+    }
+    switch_hero(was);
+    was->waiting_for = (struct hero *) 0;
 }
 
 /*heroes.c*/

@@ -1794,4 +1794,12 @@ menu_max_height(void)
     return term_rows - 2;
 }
 
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_dial[] = {
+    CURS_STATE(activemenu),
+    CURS_STATE(nhmenus),
+    CURS_STATE_END
+};
+
 /*cursdial.c*/

@@ -1141,4 +1141,12 @@ modified(int ch)
     return ret_ch;
 }
 
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_misc[] = {
+    CURS_STATE(curs_x),
+    CURS_STATE(curs_y),
+    CURS_STATE_END
+};
+
 /*cursmisc.c*/

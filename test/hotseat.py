@@ -43,22 +43,18 @@ def main():
     game.expect(r"welcome to NetHack")
     print("ok: second hero created")
 
-    # Each search passes the turn to the other hero.
+    # Forced searches ('ms') pass the turn to the other hero; a plain 's'
+    # takes no time when a monster is already known to be adjacent.
     for turn in range(3):
-        game.out = b""
-        game.send("s", 0.5)
-        game.expect(r"Bob, it is your turn")
-        game.out = b""
-        game.send("s", 0.5)
-        game.expect(r"smoke\d+, it is your turn")
+        game.act_until("ms", r"Bob, it is your turn")
+        game.act_until("ms", r"smoke\d+, it is your turn")
     print("ok: heroes alternate")
 
-    game.out = b""
-    game.send("S")
+    game.act("S")
     game.expect(r"can't be saved yet")
     print("ok: saving refused with two heroes")
 
-    game.send("#quit\r")
+    game.act("#quit\r")
     game.expect(r"Really quit")
     game.send("y")
     for _ in range(10):  # step through the end-of-game prompts

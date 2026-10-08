@@ -144,28 +144,28 @@ lvm.h       lzio.c      lzio.h
 
 src:
 (files for all versions)
-allmain.c   alloc.c     apply.c     artifact.c  attrib.c    ball.c
-bones.c     botl.c      calendar.c  cfgfiles.c  cmd.c       coloratt.c
-date.c      dbridge.c   decl.c      detect.c    dig.c       display.c
-dlb.c       do.c        do_name.c   do_wear.c   dog.c       dogmove.c
-dokick.c    dothrow.c   drawing.c   dungeon.c   earlyarg.c  eat.c
-end.c       engrave.c   exper.c     explode.c   extralev.c  files.c
-fountain.c  getpos.c    glyphs.c    hack.c      hacklib.c   iactions.c
-insight.c   invent.c    isaac64.c   light.c     lock.c      mail.c
-makemon.c   mcastu.c    mdlib.c     mhitm.c     mhitu.c     minion.c
-mklev.c     mkmap.c     mkmaze.c    mkobj.c     mkroom.c    mon.c
-mondata.c   monmove.c   monst.c     mplayer.c   mthrowu.c   muse.c
-music.c     nhlobj.c    nhlsel.c    nhlua.c     nhmd4.c     o_init.c
-objects.c   objnam.c    options.c   pager.c     pickup.c    pline.c
-polyself.c  potion.c    pray.c      priest.c    quest.c     questpgr.c
-read.c      rect.c      region.c    report.c    restore.c   revision.c
-rip.c       rnd.c       role.c      rumors.c    save.c      selvar.c
-sfbase.c    sfstruct.c  shk.c       shknam.c    sit.c       sounds.c
-sp_lev.c    spell.c     stairs.c    steal.c     steed.c     strutil.c
-symbols.c   sys.c       teleport.c  timeout.c   topten.c    track.c
-trap.c      u_init.c    uhitm.c     utf8map.c   vault.c     version.c
-vision.c    weapon.c    were.c      wield.c     windows.c   wizard.c
-wizcmds.c   worm.c      worn.c      write.c     zap.c
+allmain.c   dog.c       invent.c    muse.c      report.c    sys.c
+alloc.c     dogmove.c   isaac64.c   music.c     restore.c   teleport.c
+apply.c     dokick.c    light.c     nhlobj.c    revision.c  timeout.c
+artifact.c  dothrow.c   lock.c      nhlsel.c    rip.c       topten.c
+attrib.c    drawing.c   mail.c      nhlua.c     rnd.c       track.c
+ball.c      dungeon.c   makemon.c   nhmd4.c     role.c      trap.c
+bones.c     earlyarg.c  mcastu.c    o_init.c    rumors.c    u_init.c
+botl.c      eat.c       mdlib.c     objects.c   save.c      uhitm.c
+calendar.c  end.c       mhitm.c     objnam.c    selvar.c    utf8map.c
+cfgfiles.c  engrave.c   mhitu.c     options.c   sfbase.c    vault.c
+cmd.c       exper.c     minion.c    pager.c     sfstruct.c  version.c
+coloratt.c  explode.c   mklev.c     pickup.c    shk.c       vision.c
+date.c      extralev.c  mkmap.c     pline.c     shknam.c    weapon.c
+dbridge.c   files.c     mkmaze.c    polyself.c  sit.c       were.c
+decl.c      fountain.c  mkobj.c     potion.c    sounds.c    wield.c
+detect.c    getpos.c    mkroom.c    pray.c      sp_lev.c    windows.c
+dig.c       glyphs.c    mon.c       priest.c    spell.c     wizard.c
+display.c   hack.c      mondata.c   quest.c     stairs.c    wizcmds.c
+dlb.c       hacklib.c   monmove.c   questpgr.c  steal.c     worm.c
+do.c        heroes.c    monst.c     read.c      steed.c     worn.c
+do_name.c   iactions.c  mplayer.c   rect.c      strutil.c   write.c
+do_wear.c   insight.c   mthrowu.c   region.c    symbols.c   zap.c
 
 submodules:
 (files in top directory)
@@ -177,10 +177,10 @@ ioctl.c       posixregex.c  random.c      unixtty.c
 
 sys/unix:
 (files for UNIX versions)
-Install.unx     Makefile.src    README.hints    nethack.sh      unixres.c
-Makefile.check  Makefile.top    depend.awk      setup.sh        unixunix.c
-Makefile.dat    Makefile.utl    gitinfo.sh      sysconf
-Makefile.doc    NewInstall.unx  mkmkfile.sh     unixmain.c
+Install.unx     Makefile.src    README.hints    mpserver.c      sysconf
+Makefile.check  Makefile.top    depend.awk      nethack.sh      unixmain.c
+Makefile.dat    Makefile.utl    gitinfo.sh      nhconnect.c     unixres.c
+Makefile.doc    NewInstall.unx  mkmkfile.sh     setup.sh        unixunix.c
 
 sys/unix/hints:
 (files for configuring UNIX NetHack versions)
@@ -194,8 +194,9 @@ gbdates-post.501  misc.501          response.501
 
 test:
 (files for testing)
-README.md     test_cnf.lua  test_des.lua  test_lev.lua  test_obj.lua
-test_sel.lua  test_shk.lua  test_src.lua  testmove.lua  testwish.lua
+README.md      serverdrop.py  test_des.lua   test_sel.lua   testmove.lua
+hotseat.py     smoke.py       test_lev.lua   test_shk.lua   testwish.lua
+server.py      test_cnf.lua   test_obj.lua   test_src.lua
 
 util:
 (files for all versions)
@@ -204,9 +205,10 @@ makedefs.c  mdgrep.pl   recover.c   sfexpasc.c  stripbs.c
 
 win/curses:
 (files in top directory)
-Bugs.txt    Readme.txt  Todo.txt    cursdial.c  cursdial.h  cursinit.c
-cursinit.h  cursinvt.c  cursinvt.h  cursmain.c  cursmesg.c  cursmesg.h
-cursmisc.c  cursmisc.h  cursstat.c  cursstat.h  curswins.c  curswins.h
+Bugs.txt    cursdial.h  cursinvt.h  cursmisc.c  cursstat.h
+Readme.txt  cursinit.c  cursmain.c  cursmisc.h  curswins.c
+Todo.txt    cursinit.h  cursmesg.c  cursplay.c  curswins.h
+cursdial.c  cursinvt.c  cursmesg.h  cursstat.c
 
 win/share:
 (files for versions using optional tiles)

@@ -51,6 +51,11 @@ static boolean map_clipped;     /* Map window smaller than 80x21 */
 static nethack_window nhwins[NHWIN_MAX];        /* NetHack window array */
 static nethack_char map[ROWNO][COLNO];  /* Map window contents */
 static nethack_wid *nhwids = NULL;      /* NetHack wid array */
+/* formerly function statics; file-level so they can be per-player
+   (see cursplay.c) */
+static boolean map_initted = FALSE; /* curses_putch */
+static int mb_width = 0, mb_height = 0, /* curses_map_borders */
+    mb_osx = 0, mb_osy = 0, mb_oex = 0, mb_oey = 0, mb_oux = -1, mb_ouy = -1;
 
 static boolean is_main_window(winid wid);
 static void write_char(WINDOW * win, int x, int y, nethack_char ch);
@@ -543,7 +548,6 @@ curses_putch(winid wid, int x, int y, int ch,
 #endif
              const struct glyph_attributes *attr)
 {
-    static boolean map_initted = FALSE;
     int sx, sy, ex, ey;
     boolean border = curses_window_has_border(wid);
     nethack_char nch;
@@ -992,88 +996,97 @@ based on the location of the player. */
 boolean
 curses_map_borders(int *sx, int *sy, int *ex, int *ey, int ux, int uy)
 {
-    static int width = 0;
-    static int height = 0;
-    static int osx = 0;
-    static int osy = 0;
-    static int oex = 0;
-    static int oey = 0;
-    static int oux = -1;
-    static int ouy = -1;
-
-    if ((oux == -1) || (ouy == -1)) {
-        oux = u.ux;
-        ouy = u.uy;
+    if ((mb_oux == -1) || (mb_ouy == -1)) {
+        mb_oux = u.ux;
+        mb_ouy = u.uy;
     }
 
     if (ux == -1) {
-        ux = oux;
+        ux = mb_oux;
     } else {
-        oux = ux;
+        mb_oux = ux;
     }
 
     if (uy == -1) {
-        uy = ouy;
+        uy = mb_ouy;
     } else {
-        ouy = uy;
+        mb_ouy = uy;
     }
 
-    curses_get_window_size(MAP_WIN, &height, &width);
+    curses_get_window_size(MAP_WIN, &mb_height, &mb_width);
 
 #ifdef MAP_SCROLLBARS
-    if (width < COLNO) {
-        height--;               /* room for horizontal scrollbar */
+    if (mb_width < COLNO) {
+        mb_height--;               /* room for horizontal scrollbar */
     }
 
-    if (height < ROWNO) {
-        width--;                /* room for vertical scrollbar */
+    if (mb_height < ROWNO) {
+        mb_width--;                /* room for vertical scrollbar */
 
-        if (width == COLNO) {
-            height--;
+        if (mb_width == COLNO) {
+            mb_height--;
         }
     }
 #endif /* MAP_SCROLLBARS */
 
-    if (width >= COLNO) {
+    if (mb_width >= COLNO) {
         *sx = 0;
         *ex = COLNO - 1;
     } else {
-        *ex = (width / 2) + ux;
-        *sx = *ex - (width - 1);
+        *ex = (mb_width / 2) + ux;
+        *sx = *ex - (mb_width - 1);
 
         if (*ex >= COLNO) {
-            *sx = COLNO - width;
+            *sx = COLNO - mb_width;
             *ex = COLNO - 1;
         } else if (*sx < 0) {
             *sx = 0;
-            *ex = width - 1;
+            *ex = mb_width - 1;
         }
     }
 
-    if (height >= ROWNO) {
+    if (mb_height >= ROWNO) {
         *sy = 0;
         *ey = ROWNO - 1;
     } else {
-        *ey = (height / 2) + uy;
-        *sy = *ey - (height - 1);
+        *ey = (mb_height / 2) + uy;
+        *sy = *ey - (mb_height - 1);
 
         if (*ey >= ROWNO) {
-            *sy = ROWNO - height;
+            *sy = ROWNO - mb_height;
             *ey = ROWNO - 1;
         } else if (*sy < 0) {
             *sy = 0;
-            *ey = height - 1;
+            *ey = mb_height - 1;
         }
     }
 
-    if ((*sx != osx) || (*sy != osy) || (*ex != oex) || (*ey != oey) ||
+    if ((*sx != mb_osx) || (*sy != mb_osy) || (*ex != mb_oex) || (*ey != mb_oey) ||
         map_clipped) {
-        osx = *sx;
-        osy = *sy;
-        oex = *ex;
-        oey = *ey;
+        mb_osx = *sx;
+        mb_osy = *sy;
+        mb_oex = *ex;
+        mb_oey = *ey;
         return TRUE;
     }
 
     return FALSE;
 }
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_wins[] = {
+    CURS_STATE(map_clipped),
+    CURS_STATE(nhwins),
+    CURS_STATE(map),
+    CURS_STATE(nhwids),
+    CURS_STATE(map_initted),
+    CURS_STATE(mb_width),
+    CURS_STATE(mb_height),
+    CURS_STATE(mb_osx),
+    CURS_STATE(mb_osy),
+    CURS_STATE(mb_oex),
+    CURS_STATE(mb_oey),
+    CURS_STATE(mb_oux),
+    CURS_STATE(mb_ouy),
+    CURS_STATE_END
+};

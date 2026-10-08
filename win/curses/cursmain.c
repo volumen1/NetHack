@@ -177,9 +177,6 @@ curses_init_nhwindows(
     int *argcp UNUSED,
     char **argv UNUSED)
 {
-#ifdef PDCURSES
-    char window_title[BUFSZ];
-#endif
 #ifdef CURSES_UNICODE
 #ifdef PDCURSES
     static char pdc_font[BUFSZ] = "";
@@ -214,11 +211,32 @@ curses_init_nhwindows(
     if (iflags.raw_printed)
         curses_wait_synch();
 
-#ifdef XCURSES
-    base_term = Xinitscr(*argcp, argv);
-#else
-    base_term = initscr();
+    {
+        /* newterm() rather than initscr() so that the first player's
+           screen can be told apart from the other players' (cursplay.c) */
+        SCREEN *scr = newterm((char *) 0, stdout, stdin);
+
+        if (!scr)
+            panic("Can't initialize the terminal.");
+        curses_mp_init(scr);
+    }
+    curses_setup_terminal(TRUE);
+    curses_display_splash_window();
+}
+
+/*
+ * Set up the current ncurses screen for play: modes, colors and the main
+ * windows.  'first' is TRUE for the first player's screen, when the
+ * one-time option checks are also done.
+ */
+void
+curses_setup_terminal(boolean first)
+{
+#ifdef PDCURSES
+    char window_title[BUFSZ];
 #endif
+
+    base_term = stdscr;
     if (has_colors()) {
         start_color();
         curses_init_nhcolors();
@@ -278,7 +296,8 @@ curses_init_nhwindows(
 #endif /* PDCURSES */
     getmaxyx(base_term, term_rows, term_cols);
     counting = FALSE;
-    curses_init_options();
+    if (first)
+        curses_init_options();
     if (term_rows < 15 || term_cols < 40) {
         panic("Terminal is too small; must have at least %s%s%s.",
               (term_rows < 15) ? "15 rows" : "",
@@ -292,7 +311,6 @@ curses_init_nhwindows(
 
     curses_create_main_windows();
     curses_init_mesg_history();
-    curses_display_splash_window();
 }
 
 /* Use the general role/race/&c selection originally implemented for tty. */
@@ -395,6 +413,7 @@ curses_uncurse_terminal(void)
 void
 curses_exit_nhwindows(const char *str)
 {
+    curses_exit_other_players();
     curses_destroy_nhwindow(INV_WIN);
     curses_destroy_nhwindow(MAP_WIN);
     curses_destroy_nhwindow(STATUS_WIN);
@@ -1302,5 +1321,22 @@ curses_get_color_string(void)
     return (char *) 0;
 }
 #endif
+
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_main[] = {
+    CURS_STATE(erase_char),
+    CURS_STATE(kill_char),
+    CURS_STATE(term_rows),
+    CURS_STATE(term_cols),
+    CURS_STATE(orig_cursor),
+    CURS_STATE(base_term),
+    CURS_STATE(counting),
+    CURS_STATE(mapwin),
+    CURS_STATE(statuswin),
+    CURS_STATE(messagewin),
+    CURS_STATE(inv_update),
+    CURS_STATE_END
+};
 
 /*cursmain.c*/

@@ -49,6 +49,16 @@ static int nhattr2curses(int);
 void
 curses_status_init(void)
 {
+    curses_status_init_player();
+    /* let genl_status_init do most of the initialization */
+    genl_status_init();
+    return;
+}
+
+/* the curses port's own status setup; done once per player's screen */
+void
+curses_status_init_player(void)
+{
     int i;
 
     for (i = 0; i < MAXBLSTATS; ++i) {
@@ -59,10 +69,6 @@ curses_status_init(void)
     curses_condition_bits = 0L;
     hpbar_percent = hpbar_crit_hp = 0, hpbar_color = NO_COLOR;
     vert_status_dirty = 1;
-
-    /* let genl_status_init do most of the initialization */
-    genl_status_init();
-    return;
 }
 
 void
@@ -1428,5 +1434,20 @@ nhattr2curses(int attrmask)
     return result;
 }
 #endif /* STATUS_HILITES */
+
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_stat[] = {
+    CURS_STATE(status_vals_long),
+    CURS_STATE(curses_colormasks),
+    CURS_STATE(curses_condition_bits),
+    CURS_STATE(curses_status_colors),
+    CURS_STATE(hpbar_percent),
+    CURS_STATE(hpbar_crit_hp),
+    CURS_STATE(hpbar_color),
+    CURS_STATE(vert_status_dirty),
+    CURS_STATE(changed_fields),
+    CURS_STATE_END
+};
 
 /*cursstat.c*/

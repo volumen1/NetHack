@@ -84,6 +84,12 @@ dosave0(void)
     NHFILE *nhfp, *onhfp;
     int res = 0;
 
+    /* Multiplayer: a save holds one hero, so saving a party would drop
+       the others; this covers hangups and panics too.  Whole-party saves
+       are milestone M9. */
+    if (hero_count() > 1)
+        return 0;
+
     program_state.saving++; /* inhibit status and perm_invent updates */
     notice_mon_off();
     /* we may get here via hangup signal, in which case we want to fix up

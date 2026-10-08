@@ -104,6 +104,9 @@ struct hero {
     boolean active;          /* this slot holds a hero in the game */
     char name[PL_NSIZ];      /* player's name for this hero */
     int glyph;               /* how this hero looks to the other heroes */
+    int screen;              /* which player terminal shows this hero's view
+                              * (curses player index; 0 in hot-seat play) */
+    struct hero *waiting_for; /* last hero this player was told about */
     genericptr_t stash;      /* per-hero globals while not current;
                               * see hero_globals[] in heroes.c */
     struct you you;          /* formerly the global 'u' */

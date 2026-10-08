@@ -54,9 +54,9 @@ TARGETPFX ?=
 #
 # for UNIX systems
 SYSSRC ?= ../sys/share/ioctl.c ../sys/share/unixtty.c ../sys/unix/unixmain.c \
-	../sys/unix/unixunix.c ../sys/unix/unixres.c
+	../sys/unix/unixunix.c ../sys/unix/unixres.c ../sys/unix/mpserver.c
 SYSOBJ ?= $(TARGETPFX)ioctl.o $(TARGETPFX)unixmain.o $(TARGETPFX)unixtty.o \
-	$(TARGETPFX)unixunix.o $(TARGETPFX)unixres.o
+	$(TARGETPFX)unixunix.o $(TARGETPFX)unixres.o $(TARGETPFX)mpserver.o
 
 
 # NetHack 5.0 began introducing C99 code.
@@ -208,11 +208,13 @@ GENTILEOFILE ?=
 WINCURSESSRC ?= ../win/curses/cursmain.c ../win/curses/curswins.c \
 	../win/curses/cursmisc.c ../win/curses/cursdial.c \
 	../win/curses/cursstat.c ../win/curses/cursinit.c \
-	../win/curses/cursmesg.c ../win/curses/cursinvt.c
+	../win/curses/cursmesg.c ../win/curses/cursinvt.c \
+	../win/curses/cursplay.c
 WINCURSESOBJ ?= $(TARGETPFX)cursmain.o $(TARGETPFX)curswins.o \
 	$(TARGETPFX)cursmisc.o $(TARGETPFX)cursdial.o \
 	$(TARGETPFX)cursstat.o $(TARGETPFX)cursinit.o \
-	$(TARGETPFX)cursmesg.o $(TARGETPFX)cursinvt.o
+	$(TARGETPFX)cursmesg.o $(TARGETPFX)cursinvt.o \
+	$(TARGETPFX)cursplay.o
 # libraries for curses port
 # link with ncurses
 WINCURSESLIB ?= -lncurses
@@ -379,7 +381,7 @@ HACKCSRC ?= allmain.c alloc.c apply.c artifact.c attrib.c ball.c bones.c \
 SYSCSRC ?= ../sys/share/posixregex.c \
 	../sys/share/random.c \
 	../sys/share/ioctl.c ../sys/share/unixtty.c ../sys/unix/unixmain.c \
-	../sys/unix/unixunix.c ../sys/unix/unixres.c
+	../sys/unix/unixunix.c ../sys/unix/unixres.c ../sys/unix/mpserver.c
 SYSCXXSRC ?=
 
 # all windowing-system-dependent .c (for dependencies and such)
@@ -738,6 +740,8 @@ $(TARGETPFX)unixtty.o: ../sys/share/unixtty.c $(HACK_H)
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../sys/share/unixtty.c
 $(TARGETPFX)unixmain.o: ../sys/unix/unixmain.c $(HACK_H) ../include/dlb.h
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../sys/unix/unixmain.c
+$(TARGETPFX)mpserver.o: ../sys/unix/mpserver.c $(HACK_H)
+	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../sys/unix/mpserver.c
 $(TARGETPFX)unixres.o: ../sys/unix/unixres.c $(CONFIG_H)
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../sys/unix/unixres.c
 $(TARGETPFX)unixunix.o: ../sys/unix/unixunix.c $(HACK_H)
@@ -766,6 +770,8 @@ $(TARGETPFX)cursinvt.o: ../win/curses/cursinvt.c $(HACK_H) \
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../win/curses/cursinvt.c
 $(TARGETPFX)cursmain.o: ../win/curses/cursmain.c $(HACK_H) ../include/wincurs.h
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../win/curses/cursmain.c
+$(TARGETPFX)cursplay.o: ../win/curses/cursplay.c $(HACK_H) ../include/wincurs.h
+	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../win/curses/cursplay.c
 $(TARGETPFX)cursmesg.o: ../win/curses/cursmesg.c $(HACK_H) \
 		../include/wincurs.h ../win/curses/cursmesg.h
 	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $@ ../win/curses/cursmesg.c

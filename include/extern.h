@@ -1204,6 +1204,12 @@ extern void reset_customcolors(void);
 extern int glyph_to_cmap(int);
 extern void maybe_shuffle_customizations(void);
 
+/* ### cursplay.c (curses interface, called from the core) ### */
+
+extern int curses_add_player(int, const char *);
+extern void curses_switch_player(int);
+extern void curses_mp_watching(boolean);
+
 /* ### heroes.c ### */
 
 struct hero;
@@ -1217,6 +1223,7 @@ extern struct hero *next_ready_hero(void);
 extern struct hero *first_ready_hero(void);
 extern void add_extra_heroes(void);
 extern void announce_hero_turn(void);
+extern void refresh_other_screens(void);
 
 /* ### hack.c ### */
 
@@ -3530,6 +3537,15 @@ extern boolean disguised_as_mon(struct monst *) NONNULLARG1;
 extern int flash_hits_mon(struct monst *, struct obj *) NONNULLARG12;
 extern void light_hits_gremlin(struct monst *, int) NONNULLARG1;
 
+
+/* ### mpserver.c ### */
+
+extern boolean mp_server_start(void);
+extern int mp_player_count(void);
+extern const char *mp_player_name(int);
+extern const char *mp_player_term(int);
+extern int mp_player_ttyfd(int);
+extern void mp_set_goodbye(const char *, ...) PRINTF_F(1, 2);
 
 /* ### unixmain.c ### */
 #ifdef UNIX

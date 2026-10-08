@@ -171,6 +171,8 @@ main(int argc, char *argv[])
 #ifdef WINCHAIN
     commit_windowchain();
 #endif
+    /* multiplayer: wait for the players and take over their terminals */
+    (void) mp_server_start();
     init_nhwindows(&argc, argv); /* now we can set up window system */
 #ifdef _M_UNIX
     init_sco_cons();

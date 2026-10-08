@@ -300,6 +300,13 @@ recover: $(CCRESP) $(RECOVOBJS) $(HACKLIB)
 recover.o: recover.c $(CONFIG_H)
 	$(CC) $(CFLAGS) $(CSTD) -c recover.c -o $@
 
+# stand-alone client for joining a multiplayer game; uses nothing else
+nh-connect: nhconnect.o
+	$(CLINK) $(LFLAGS) -o nh-connect nhconnect.o
+
+nhconnect.o: ../sys/unix/nhconnect.c
+	$(CC) $(CFLAGS) $(CSTD) -c ../sys/unix/nhconnect.c -o $@
+
 recover-version.o: ../src/version.c $(HACK_H)
 	$(CC) $(CFLAGS) $(CSTD) -DMINIMAL_FOR_RECOVER -c ../src/version.c -o $@
 #
@@ -587,7 +594,7 @@ clean: clean-fixup
 
 # obsolete dgn_comp and lev_comp could be left around from 3.6.x
 spotless: clean
-	-rm -f makedefs recover dlb $(HACKLIB)
+	-rm -f makedefs recover nh-connect dlb $(HACKLIB)
 	-rm -f gif2txt txt2ppm \
 		tilemap tile2bmp
 	-rm -f dgn_comp* dgn_lex.c dgn_yacc.c ../include/dgn_comp.h \

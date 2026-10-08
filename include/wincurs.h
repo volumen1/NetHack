@@ -73,6 +73,29 @@ int mvwprintw(WINDOW *, int, int, const char *, ...) PRINTF_F(4, 5);
 
 extern struct window_procs curses_procs;
 
+/* Multiplayer: each player has their own terminal (an ncurses SCREEN) and
+   their own copy of the curses port's file-level state.  Each source file
+   lists its per-player variables in a table of these; cursplay.c saves and
+   restores them when the current player changes. */
+struct curs_state {
+    genericptr_t addr;
+    size_t len;
+};
+#define CURS_STATE(v) { (genericptr_t) &(v), sizeof (v) }
+#define CURS_STATE_END { (genericptr_t) 0, 0 }
+
+extern const struct curs_state curs_state_dial[], curs_state_init[],
+    curs_state_main[], curs_state_mesg[], curs_state_misc[],
+    curs_state_stat[], curs_state_wins[];
+
+/* cursplay.c */
+extern void curses_mp_init(SCREEN *first);
+extern int curses_add_player(int fd, const char *term);
+extern void curses_switch_player(int idx);
+extern void curses_exit_other_players(void);
+extern void curses_mp_watching(boolean);
+extern void curses_setup_terminal(boolean first);
+
 extern void curses_init_nhwindows(int* argcp, char** argv);
 extern void curses_player_selection(void);
 extern void curses_askname(void);
@@ -197,6 +220,7 @@ extern void curses_del_menu(winid, boolean);
 /* cursstat.c */
 
 extern void curses_status_init(void);
+extern void curses_status_init_player(void);
 extern void curses_status_finish(void);
 extern void curses_status_update(int, genericptr_t, int, int, int,
                                  unsigned long *);

@@ -472,6 +472,7 @@ moveloop_core(void)
                 switch_hero(next);
                 announce_hero_turn();
             }
+            refresh_other_screens();
         }
     } /* actual time passed */
 

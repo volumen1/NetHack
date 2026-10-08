@@ -56,9 +56,50 @@ class Game:
             self.pump(0.1)
         fail("timed out waiting for %r" % pattern, self)
 
+    def seen(self, pattern, timeout=15):
+        """Wait for pattern, dismissing More prompts ('>>') along the way
+        (e.g. messages about monsters that arrive first).  Returns whether
+        it showed up."""
+        end = time.time() + timeout
+        while time.time() < end:
+            if re.search(pattern, self.text()):
+                return True
+            if self.text().rstrip().endswith(">>"):
+                self.send("\r", 0.3)
+            self.pump(0.1)
+        return False
+
+    def expect_past_more(self, pattern, timeout=15):
+        """Like expect(), but dismiss More prompts along the way."""
+        if not self.seen(pattern, timeout):
+            fail("timed out waiting for %r" % pattern, self)
+
+    def act_until(self, keys, pattern, tries=5):
+        """Repeat a command until pattern appears.  A fast hero can get
+        more than one move in a turn, so one action doesn't always pass
+        the turn to the next hero."""
+        for _ in range(tries):
+            self.act(keys)
+            if self.seen(pattern, 4):
+                return
+        fail("%r never appeared after %d tries" % (pattern, tries), self)
+
     def send(self, keys, settle=0.3):
         os.write(self.fd, keys.encode("latin-1"))
         self.pump(settle)
+
+    def act(self, keys, settle=0.5):
+        """Send a command, first dismissing any pending More prompt
+        (shown as '>>' at the end of the message line).  The captured
+        output is cleared before the command, so expect() afterwards only
+        sees what the command produced."""
+        for _ in range(10):
+            self.pump(0.2)
+            if not self.text().rstrip().endswith(">>"):
+                break
+            self.send("\r", 0.3)
+        self.out = b""
+        self.send(keys, settle)
 
     def wait_exit(self, timeout=10):
         end = time.time() + timeout

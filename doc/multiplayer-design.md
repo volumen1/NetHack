@@ -472,7 +472,7 @@ Each milestone should end in something that runs.
 |---|---|---|
 | M0 | Fork cleanup: remove other ports/platforms, build only curses on Linux. **Done** (§11.1). | Clean base. |
 | M1 | Hero indirection (§3.1). Two heroes on one level, **hot-seat** on one terminal, alternating turns. **Done** (§11.2). | The `cur_hero` approach works; most code runs unchanged. |
-| M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. | Several players, several screens. |
+| M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. **Done** (§11.3). | Several players, several screens. |
 | M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. | Multiple heroes in the same fight. |
 | M4 | Message routing v1 + location-based messages (§7.1), party panel. | Each player understands what's going on. |
 | M5 | Hybrid time model with coroutines and per-level lock (§4). | The game feels right. **Highest gameplay risk; playtest heavily.** |
@@ -532,8 +532,54 @@ Each milestone should end in something that runs.
     level (M6).
   - Any hero dying ends the game (M9).
   - Monsters judge line of sight with the current hero's vision.
-  - A hangup save, from a dropped connection, records only the current
-    hero.
+  - (Fixed in M2: no save of any kind, including hangup and panic saves,
+    is written while there's more than one hero, since a save would hold
+    only one of them.)
+
+### 11.3 M2 notes
+
+- **Starting a server game.** Set `NETHACK_SERVER` to a socket path and
+  `NETHACK_HEROES` to the number of players, and start `nethack` with no
+  terminal (`< /dev/null`, progress goes to stderr). It waits until that
+  many players have joined, then starts. `sys/unix/mpserver.c`.
+- **Joining.** `nh-connect [-s SOCKET] [NAME]` (`sys/unix/nhconnect.c`,
+  installed next to `nethack`) opens the player's terminal and passes it to
+  the server over the socket (`SCM_RIGHTS`), with the name and `$TERM`. It
+  then waits; when the server closes the socket it restores the terminal's
+  modes and exits. The protocol is one line, `NHMP1\t<name>\t<TERM>\n`,
+  answered by `ok` or `error <text>`.
+- **First player.** Their terminal is attached as the server's standard
+  input and output, so the usual startup (lock file, character selection,
+  intro) runs on it unchanged.
+- **Other players' screens.** Each gets an ncurses `SCREEN` from
+  `newterm()`. The curses port's file-level state is listed per file in
+  `curs_state_*[]` tables and swapped by `curses_switch_player()`
+  (`win/curses/cursplay.c`). `display.c`'s screen buffer (`gbuf`) is
+  swapped with it (`switch_screen()` in `heroes.c`). Each hero records its
+  screen (`struct hero.screen`), so `switch_hero()` moves the display too:
+  messages go to whichever player the current hero belongs to, including
+  monster attacks on that hero.
+- **Waiting players.** After every action that takes time, each waiting
+  player's map is redrawn from their own hero's view, their status line is
+  updated, and they're told whose turn it is
+  (`refresh_other_screens()`). While watching, a screen's messages scroll
+  instead of stopping for `More>>`.
+- **Tests:** `test/server.py` (two players join, pick characters, take
+  turns, see both heroes, quit; the clients exit) and
+  `test/serverdrop.py` (a player drops; the game ends cleanly with no
+  save). Both need the `pyte` module.
+- **Limits until later milestones:**
+  - Turns strictly alternate. Keys a waiting player types are kept in
+    their terminal until their turn (M5 replaces this with the hybrid
+    time model).
+  - A player whose connection drops ends the game for everyone when the
+    game next reads from their terminal (M5/M9). It ends cleanly: nothing
+    is saved, and each remaining player's `nh-connect` prints why, after
+    giving the terminal back ("Bob lost their connection, which ended the
+    game"). The server sends `bye <reason>` before closing.
+  - Terminal resizes after joining aren't passed on yet.
+  - 256-color customizations may use different color numbers on
+    different terminals.
 
 ---
 

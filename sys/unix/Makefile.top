@@ -112,7 +112,8 @@ LUABASELIB ?= libnhlua.a
 LUALIB ?= $(LUATOP)/$(LUABASELIB)
 LUALIBBUILT ?= $(LUATOP)/libnhlua.a
 
-ALLDEP = $(PRECHECK) $(GAME) recover Guidebook $(VARDAT) spec_levs check-dlb
+ALLDEP = $(PRECHECK) $(GAME) recover nh-connect Guidebook $(VARDAT) spec_levs \
+	check-dlb
 
 # first target is also the default target for 'make' without any arguments
 all:    $(ALLDEP)
@@ -200,6 +201,10 @@ package: $(GAME) recover $(VARDAT) spec_levs
 recover: $(GAME)
 	( cd util ; $(MAKE) $(RECOVERBIN) )
 
+# nh-connect joins a multiplayer game (see doc/multiplayer-design.md)
+nh-connect:
+	( cd util ; $(MAKE) nh-connect )
+
 # sfctool can be configured by the sysadmin to convert the savefile
 # content format as necessary.
 sfctool: $(GAME)
@@ -215,6 +220,7 @@ dofiles:
 	$(MAKE) dofiles-$${target-nodlb}
 	cp src/$(GAME) $(INSTDIR)
 	cp util/recover $(INSTDIR)
+	cp util/nh-connect $(INSTDIR)
 	-if test -n '$(SHELLDIR)'; then rm -f $(SHELLDIR)/$(GAME); fi
 	if test -n '$(SHELLDIR)'; then \
 		sed -e 's;/usr/games/lib/nethackdir;$(HACKDIR);' \
@@ -226,6 +232,7 @@ dofiles:
 			$(CHGRP) $(GAMEGRP) $(GAME) recover )
 	chmod $(GAMEPERM) $(INSTDIR)/$(GAME)
 	chmod $(EXEPERM) $(INSTDIR)/recover
+	chmod $(EXEPERM) $(INSTDIR)/nh-connect
 	-if test -n '$(SHELLDIR)'; then \
 		$(CHOWN) $(GAMEUID) $(SHELLDIR)/$(GAME); fi
 	if test -n '$(SHELLDIR)'; then \
@@ -293,7 +300,8 @@ update: $(PRECHECK) $(GAME) recover $(VARDAT) spec_levs sys/unix/sysconf
 rootcheck:
 	@true; $(ROOTCHECK)
 
-install: rootcheck $(PRECHECK) $(GAME) recover $(VARDAT) spec_levs sys/unix/sysconf
+install: rootcheck $(PRECHECK) $(GAME) recover nh-connect $(VARDAT) spec_levs \
+		sys/unix/sysconf
 	true; $(PREINSTALL)
 # set up the directories
 # not all mkdirs have -p; those that don't will create a -p directory

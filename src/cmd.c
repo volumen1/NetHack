@@ -5227,6 +5227,12 @@ end_of_input(void)
 
     if (In_tutorial(&u.uz))
         program_state.something_worth_saving = 0; /* don't save in tutorial */
+    if (hero_count() > 1) {
+        /* a party can't be saved yet, so losing a player ends the game */
+        mp_set_goodbye("%s lost their connection, which ended the game"
+                       " (parties can't be saved yet).", cur_hero->name);
+        program_state.something_worth_saving = 0;
+    }
 
 #ifndef SAFERHANGUP
     if (!program_state.done_hup++)

@@ -68,6 +68,13 @@ static int turn_lines = 0;
 static int mx = 0;
 static int my = 0;              /* message window text location */
 static nhprev_mesg *first_mesg = NULL;
+/* formerly function statics; file-level so they can be per-player
+   (see cursplay.c) */
+static int blk_prev_x = -1, blk_prev_y = -1, blk_blink = 0; /* curses_block */
+static WINDOW *countwin = NULL; /* curses_count_window */
+/* multiplayer: this screen's player is waiting while someone else moves;
+   their messages scroll by instead of stopping for More>> */
+static boolean curs_watching = FALSE;
 static nhprev_mesg *last_mesg = NULL;
 static int max_messages;
 static int num_messages = 0;
@@ -172,8 +179,9 @@ curses_message_win_puts(const char *message, boolean recursed)
     if (linespace < message_length) {
         if (my - border_space >= height - 1) {
             /* bottom of message win */
-            if (++turn_lines > height
-                || (turn_lines == height && mx > border_space)) {
+            if (!curs_watching
+                && (++turn_lines > height
+                    || (turn_lines == height && mx > border_space))) {
                  /* pause until key is hit - ESC suppresses further messages
                     this turn unless an urgent message is being delivered */
                 if (curses_more() == '\033'
@@ -184,6 +192,9 @@ curses_message_win_puts(const char *message, boolean recursed)
                 /* turn_lines reset to 0 by more()->block()->got_input() */
             } else {
                 scroll_window(MESSAGE_WIN);
+                /* a one-line window is cleared rather than scrolled, which
+                   leaves mx alone; start the new line at the left edge */
+                mx = border_space;
             }
         } else {
             if (mx != border_space) {
@@ -277,6 +288,15 @@ curscolor(int nhcolor, boolean *boldon)
 }
 #endif
 
+/* multiplayer: is this screen's player only watching right now? */
+void
+curses_set_watching(boolean watching)
+{
+    curs_watching = watching;
+    if (!watching)
+        turn_lines = 0;
+}
+
 void
 curses_got_input(void)
 {
@@ -303,7 +323,6 @@ curses_block(
                        * scroll after */
 {
     static const char resp[] = " \r\n\033"; /* space, enter, esc */
-    static int prev_x = -1, prev_y = -1, blink = 0;
     int height, width, moreattr, oldcrsr, ret = 0,
         brdroffset = curses_window_has_border(MESSAGE_WIN) ? 1 : 0;
     WINDOW *win = curses_get_nhwin(MESSAGE_WIN);
@@ -318,16 +337,16 @@ curses_block(
     /* if ">>" (--More--) is being rendered at the same spot as before,
        toggle attributes so that the first '>' starts blinking if it wasn't
        or stops blinking if it was */
-    if (mx == prev_x && my == prev_y) {
-        blink = 1 - blink;
+    if (mx == blk_prev_x && my == blk_prev_y) {
+        blk_blink = 1 - blk_blink;
     } else {
-        prev_x = mx, prev_y = my;
-        blink = 0;
+        blk_prev_x = mx, blk_prev_y = my;
+        blk_blink = 0;
     }
     moreattr = !iflags.wc2_guicolor ? (int) A_REVERSE : NONE;
     curses_toggle_color_attr(win, MORECOLOR, moreattr, ON);
     curses_set_wid_colors(MESSAGE_WIN, NULL);
-    if (blink) {
+    if (blk_blink) {
         wattron(win, A_BLINK);
         mvwprintw(win, my, mx, ">"), mx += 1;
         wattroff(win, A_BLINK);
@@ -572,7 +591,6 @@ curses_prev_mesg(void)
 void
 curses_count_window(const char *count_text)
 {
-    static WINDOW *countwin = NULL;
     int winx, winy;
     int messageh, messagew, border;
 
@@ -1132,5 +1150,27 @@ curses_putmsghistory(const char *msg, boolean restoring_msghist)
     if (restoring_msghist && !msg)
         curses_last_messages();
 }
+
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_mesg[] = {
+    CURS_STATE(curs_mesg_suppress_seq),
+    CURS_STATE(curs_mesg_no_suppress),
+    CURS_STATE(mesg_mixed),
+    CURS_STATE(turn_lines),
+    CURS_STATE(mx),
+    CURS_STATE(my),
+    CURS_STATE(first_mesg),
+    CURS_STATE(last_mesg),
+    CURS_STATE(max_messages),
+    CURS_STATE(num_messages),
+    CURS_STATE(last_messages),
+    CURS_STATE(blk_prev_x),
+    CURS_STATE(blk_prev_y),
+    CURS_STATE(blk_blink),
+    CURS_STATE(countwin),
+    CURS_STATE(curs_watching),
+    CURS_STATE_END
+};
 
 /*cursmesg.c*/

@@ -853,3 +853,10 @@ void
 curses_cleanup(void)
 {
 }
+
+/* per-player state; see struct curs_state in wincurs.h */
+const struct curs_state curs_state_init[] = {
+    CURS_STATE(pairs_used),
+    CURS_STATE(colors_used),
+    CURS_STATE_END
+};

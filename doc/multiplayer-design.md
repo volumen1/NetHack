@@ -473,7 +473,7 @@ Each milestone should end in something that runs.
 | M0 | Fork cleanup: remove other ports/platforms, build only curses on Linux. **Done** (§11.1). | Clean base. |
 | M1 | Hero indirection (§3.1). Two heroes on one level, **hot-seat** on one terminal, alternating turns. **Done** (§11.2). | The `cur_hero` approach works; most code runs unchanged. |
 | M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. **Done** (§11.3). | Several players, several screens. |
-| M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. | Multiple heroes in the same fight. |
+| M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. **Done** (§11.4). | Multiple heroes in the same fight. |
 | M4 | Message routing v1 + location-based messages (§7.1), party panel. | Each player understands what's going on. |
 | M5 | Hybrid time model with coroutines and per-level lock (§4). | The game feels right. **Highest gameplay risk; playtest heavily.** |
 | M6 | Multiple live levels (§3.2). | The party can split. **Highest engine risk.** |
@@ -580,6 +580,56 @@ Each milestone should end in something that runs.
   - Terminal resizes after joining aren't passed on yet.
   - 256-color customizations may use different color numbers on
     different terminals.
+
+### 11.4 M3 notes
+
+- **Monster targets.** Each monster records the hero it's after
+  (`struct monst.mtarget`, the old spare field, so save files are
+  unchanged). `monster_target()` in `heroes.c` picks the closest hero by
+  king-move distance, but keeps the previous target unless that hero left
+  the level, the monster lost sight of them, or another hero is at least 2
+  squares closer (§5.1). The tie-break by "attacked it most recently" isn't
+  done.
+- **Moving into an ally** (`move_into_hero()`):
+  - Swaps places with them, unless either hero is trapped, held, chained,
+    or riding, or the swap would put the ally on water, lava or a trap, or
+    the mover couldn't make that move. Then it says "You stop.  Bob is in
+    your way." Both players get a message.
+  - Running stops before an ally instead.
+  - `F` toward a recognized ally asks "Really attack Bob?"; declining takes
+    no time.
+  - Blind: the first move into an unseen ally gives "Wait!  There's
+    something there you can't see!", and trying that same spot again
+    attacks. Each hero remembers where they bumped (`struct hero.bumped`),
+    because the `I` marker sits in shared map memory, where the ally's own
+    view erases it.
+  - Hallucinating: the ally looks like a random monster and is attacked
+    without asking.
+- **Hero-vs-hero melee** (`attack_hero()`) uses the usual to-hit and
+  damage bonuses (luck, level, skill, strength, weapon), but not weapon
+  specials (artifacts, poison, silver...). Death is credited as "killed by
+  Alice, a fellow adventurer".
+- **Rays** (wands, spells, breath) hit any hero in their path:
+  `dobuzz()` makes that hero current for the hit, so their reflection,
+  resistances and messages apply. A steed only shields the current hero.
+- **Explosions** catch every hero within the blast. The hero part of
+  `explode()` became `explode_hurt_hero()`, run for each one. The damage
+  reduction some roles get when breaking a wand applies only to the hero
+  who broke it. Deaths are credited as "killed by Alice's <explosion>".
+- **Hot-seat messages** about a hero other than the one taking their turn
+  are labelled with that hero's name ("Bob: The jackal bites!"), since
+  everyone shares one screen (`hero_message_owner()`). Server games don't
+  need it.
+- **Helpless heroes** (asleep, paralyzed) aren't told "it is your turn";
+  their turns pass by themselves.
+- **Not done yet:** Conflict doesn't make monsters attack other heroes,
+  thrown objects and kicked items pass through other heroes, and spells
+  aimed at an ally (e.g. healing) are treated like other zaps (rays hit,
+  but beam spells such as healing don't reach other heroes yet).
+- **Tests:** `test/allies.py` (swap, F confirmation, blind bump and
+  accidental hit) and `test/blasts.py` (a sleep ray and a wand explosion
+  reach the other hero). Both need `pyte`, and `blasts.py` uses debug
+  mode.
 
 ---
 

@@ -273,7 +273,22 @@ vpline(const char *line, va_list the_args)
     if (u.ux)
         flush_screen((gp.pline_flags & NO_CURS_ON_U) ? 0 : 1); /* %% */
 
+    /* Multiplayer, hot-seat: heroes share one screen, so a message about
+       a hero other than the one taking their turn says whose it is */
+    {
+        const char *who = hero_message_owner();
+
+        if (who) {
+            char *prefixed = (char *) alloc(BUFSZ + PL_NSIZ + 2);
+
+            Snprintf(prefixed, BUFSZ + PL_NSIZ + 2, "%s: %s", who, line);
+            putmesg(prefixed);
+            free((genericptr_t) prefixed);
+            goto pline_put;
+        }
+    }
     putmesg(line);
+ pline_put:
 
     execplinehandler(line);
 

@@ -1218,11 +1218,13 @@ extern int hero_count(void);
 extern void switch_hero(struct hero *);
 extern struct hero *other_hero_at(coordxy, coordxy);
 extern struct hero *obj_hero(struct obj *);
-extern struct hero *closest_hero(coordxy, coordxy);
+extern struct hero *monster_target(struct monst *);
 extern struct hero *next_ready_hero(void);
 extern struct hero *first_ready_hero(void);
 extern void add_extra_heroes(void);
 extern void announce_hero_turn(void);
+extern const char *hero_message_owner(void);
+extern void move_into_hero(struct hero *, coordxy, coordxy);
 extern void refresh_other_screens(void);
 
 /* ### hack.c ### */

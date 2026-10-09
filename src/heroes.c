@@ -97,6 +97,8 @@ staticfn size_t hero_globals_size(void);
 staticfn void stash_globals(struct hero *);
 staticfn void unstash_globals(struct hero *);
 staticfn void place_new_hero(struct hero *);
+staticfn void swap_with_hero(struct hero *, coordxy, coordxy);
+staticfn void attack_hero(struct hero *, boolean);
 
 staticfn size_t
 hero_globals_size(void)
@@ -237,23 +239,38 @@ obj_hero(struct obj *obj)
     return (struct hero *) 0;
 }
 
-/* the hero closest to <x,y> on the current level; ties go to the
-   current hero, then to the lowest-numbered one */
+/*
+ * The hero monster 'mtmp' is after (doc/multiplayer-design.md, sec. 5.1):
+ * the closest hero on the level, by king-move distance, except that a
+ * monster sticks with the hero it was already after unless that hero has
+ * left, the monster has lost sight of them, or another hero is at least
+ * 2 squares closer.  Without the stickiness monsters would flip between
+ * heroes every step as the party moves around them.
+ */
 struct hero *
-closest_hero(coordxy x, coordxy y)
+monster_target(struct monst *mtmp)
 {
-    int i, d, best_d = dist2(x, y, u.ux, u.uy);
-    struct hero *h, *best = cur_hero;
+    int i, d, best_d = 0;
+    struct hero *h, *best = 0, *cur = 0;
 
     for (i = 0; i < MAX_HEROES; i++) {
         h = &heroes[i];
-        if (!h->active || h == cur_hero || !on_level(&h->you.uz, &u.uz))
+        if (!h->active || !on_level(&h->you.uz, &u.uz))
             continue;
-        d = dist2(x, y, h->you.ux, h->you.uy);
-        if (d < best_d)
+        d = distmin(mtmp->mx, mtmp->my, h->you.ux, h->you.uy);
+        if (!best || d < best_d)
             best = h, best_d = d;
+        if (mtmp->mtarget == i + 1)
+            cur = h;
     }
-    return best;
+    if (cur && cur != best
+        && m_cansee(mtmp, cur->you.ux, cur->you.uy)
+        && distmin(mtmp->mx, mtmp->my, cur->you.ux, cur->you.uy)
+               < best_d + 2)
+        best = cur; /* keep after the same hero */
+    if (best)
+        mtmp->mtarget = (long) (best - heroes) + 1;
+    return best ? best : cur_hero;
 }
 
 /* the next hero after the current one, in table order, who still has
@@ -394,16 +411,186 @@ add_extra_heroes(void)
     }
 }
 
+/*
+ * The current hero tries to move onto <x,y>, where hero 'oh' stands
+ * (doc/multiplayer-design.md, section 6.3).  A hero who can tell who is
+ * there swaps places with them, or with F asks before attacking.  A hero
+ * who can't (blind or hallucinating) treats them like any monster in the
+ * way: a blind hero first bumps into "something" and attacks if they
+ * try that spot again; a hallucinating one just attacks.  Sets
+ * svc.context.move to say whether this took time.
+ */
+void
+move_into_hero(struct hero *oh, coordxy x, coordxy y)
+{
+    boolean recognized = !Blind && !Hallucination;
+
+    if (svc.context.run && recognized) {
+        nomul(0); /* don't run into allies */
+        svc.context.move = 0;
+        return;
+    }
+    if (!recognized) {
+        /* The 'I' marker can't be relied on to remember the bump: map
+           memory is shared, and the ally's own view of their square
+           replaces it.  So each hero remembers where they bumped. */
+        if (Blind && (cur_hero->bumped.x != x || cur_hero->bumped.y != y)) {
+            pline("Wait!  There's %s there you can't see!", something);
+            map_invisible(x, y);
+            cur_hero->bumped.x = x, cur_hero->bumped.y = y;
+            nomul(0);
+            return; /* uses the move, as for an unseen monster */
+        }
+        attack_hero(oh, FALSE);
+        return;
+    }
+    if (svc.context.forcefight) {
+        char qbuf[QBUFSZ];
+
+        Snprintf(qbuf, sizeof qbuf, "Really attack %s?", oh->name);
+        if (y_n(qbuf) != 'y') {
+            nomul(0);
+            svc.context.move = 0;
+            return;
+        }
+        attack_hero(oh, TRUE);
+        return;
+    }
+    swap_with_hero(oh, x, y);
+}
+
+/* swap places with hero 'oh', who is at <x,y> next to the current hero */
+staticfn void
+swap_with_hero(struct hero *oh, coordxy x, coordxy y)
+{
+    coordxy ox = u.ux, oy = u.uy;
+    struct hero *me = cur_hero;
+    boolean ok;
+
+    ok = !u.utrap && !oh->you.utrap         /* neither is stuck */
+         && !u.ustuck && !oh->you.ustuck    /* or held */
+         && !Punished && !oh->ball          /* or chained */
+         && !u.usteed && !oh->you.usteed    /* or riding */
+         /* where they'd end up must be safe for them, and we must be
+            able to make the move ourselves */
+         && !is_pool_or_lava(ox, oy) && !t_at(ox, oy)
+         && test_move(ox, oy, x - ox, y - oy, TEST_MOVE);
+    if (!ok) {
+        You("stop.  %s is in your way.", oh->name);
+        nomul(0);
+        svc.context.move = 0;
+        return;
+    }
+
+    switch_hero(oh);
+    u_on_newpos(ox, oy);
+    stop_occupation();
+    pline("%s swaps places with you.", me->name);
+    switch_hero(me);
+
+    u_on_newpos(x, y);
+    u.umoved = TRUE;
+    You("swap places with %s.", oh->name);
+    newsym(ox, oy);
+    newsym(x, y);
+    gv.vision_full_recalc = 1;
+    spoteffects(TRUE);
+}
+
+/*
+ * The current hero attacks hero 'oh' in melee.  'knows' is whether the
+ * attacker can tell who it is.  This is deliberately simpler than
+ * attacking a monster: to-hit and damage use the usual weapon, skill,
+ * strength and luck bonuses, but weapon specials (artifacts, poison,
+ * silver and so on) aren't applied yet.
+ */
+staticfn void
+attack_hero(struct hero *oh, boolean knows)
+{
+    struct hero *me = cur_hero;
+    struct monst *victim = &oh->mon;
+    char kbuf[BUFSZ], vbuf[BUFSZ], nbuf[BUFSZ];
+    int tohit, dmg = 0;
+    boolean hit;
+
+    tohit = 1 + Luck + abon() + oh->you.uac + u.uhitinc + u.ulevel;
+    if (uwep && (uwep->oclass == WEAPON_CLASS || is_weptool(uwep)))
+        tohit += hitval(uwep, victim) + weapon_hit_bonus(uwep);
+    else if (!uwep)
+        tohit += weapon_hit_bonus((struct obj *) 0);
+    hit = (tohit > rnd(20));
+    if (hit) {
+        if (uwep && (uwep->oclass == WEAPON_CLASS || is_weptool(uwep)))
+            dmg = dmgval(uwep, victim) + weapon_dam_bonus(uwep);
+        else if (uwep)
+            dmg = rnd(2); /* bashing with something that isn't a weapon */
+        else
+            dmg = rnd(martial_bonus() ? 4 : 2)
+                  + weapon_dam_bonus((struct obj *) 0);
+        dmg += dbon();
+        if (dmg < 1)
+            dmg = 1;
+    }
+
+    /* the attacker's side */
+    if (knows)
+        Strcpy(vbuf, oh->name);
+    else if (Hallucination)
+        Strcpy(vbuf, an(rndmonnam(nbuf)));
+    else
+        Strcpy(vbuf, "it");
+    if (hit)
+        You("hit %s%s", vbuf, knows ? "!" : ".");
+    else
+        You("miss %s.", vbuf);
+    wake_nearby(FALSE);
+
+    /* the victim's side */
+    Snprintf(kbuf, sizeof kbuf, "%s, a fellow adventurer", me->name);
+    switch_hero(oh);
+    if (Blind)
+        Strcpy(vbuf, "It");
+    else if (Hallucination)
+        Strcpy(vbuf, upstart(an(rndmonnam(nbuf))));
+    else
+        Strcpy(vbuf, me->name);
+    stop_occupation();
+    if (hit) {
+        pline("%s hits you!", vbuf);
+        losehp(Maybe_Half_Phys(dmg), kbuf, KILLED_BY);
+    } else {
+        pline("%s misses you.", vbuf);
+    }
+    switch_hero(me);
+}
+
+/*
+ * Hot-seat play: heroes share one screen, so a message about a hero other
+ * than the one taking their turn (e.g. a monster attacking them, or a
+ * hero swapping places with them) is labelled with that hero's name.
+ * Returns the name to use, or Null for no label.
+ */
+const char *
+hero_message_owner(void)
+{
+    if (hero_count() < 2 || mp_player_count() > 1 || !input_hero
+        || cur_hero == input_hero)
+        return (const char *) 0;
+    return cur_hero->name;
+}
+
 /* tell the players whose turn it is */
 void
 announce_hero_turn(void)
 {
     if (hero_count() < 2)
         return;
+    input_hero = cur_hero;
+    if (gm.multi < 0)
+        return; /* helpless (asleep, paralyzed...); the turn just passes */
     if (mp_player_count() > 1) {
         /* everyone has a screen; the others get told by
            refresh_other_screens() */
-        input_hero = cur_hero;
         curses_mp_watching(FALSE);
         /* what arrived while watching has been on screen; start the turn
            on a fresh line, as before any command */

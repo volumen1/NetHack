@@ -2760,16 +2760,13 @@ domove_core(void)
         if (escape_from_sticky_mon(x, y))
             return;
 
-        /* Multiplayer: another hero blocks the way.  Swapping places and
-           (accidental) attacks come with milestone M3. */
+        /* Multiplayer: another hero is in the way; swap places, or attack
+           them by accident or on purpose (see move_into_hero()) */
         {
             struct hero *oh = other_hero_at(x, y);
 
             if (oh) {
-                if (!svc.context.run)
-                    You("stop.  %s is in your way.", oh->name);
-                nomul(0);
-                svc.context.move = 0;
+                move_into_hero(oh, x, y);
                 return;
             }
         }

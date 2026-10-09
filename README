@@ -41,6 +41,11 @@ socket's directory.  python3 test/server.py playground and
 test/serverdrop.py (a player losing their connection) check this
 automatically; they need the pyte module (pip install pyte).
 
+The other tests (each takes the playground directory as its argument):
+test/allies.py (swapping places with and attacking an ally) and
+test/blasts.py (rays and explosions reaching other heroes; uses debug
+mode, so the user running it must be in WIZARDS in playground/sysconf).
+
 The upstream NetHack README follows.
 
                         - - - - - - - - - - -

@@ -6,6 +6,9 @@
 
 staticfn int explosionmask(struct monst *, uchar, char) NONNULLARG1;
 staticfn void engulfer_explosion_msg(uchar, char);
+staticfn void explode_hurt_hero(int, int, int, const char *, uchar, int, char,
+                              boolean, boolean, char *, boolean, coord,
+                              coordxy, coordxy, const char *);
 
 /* Note: Arrays are column first, while the screen is row first */
 static const int explosion[3][3] = {
@@ -176,6 +179,117 @@ engulfer_explosion_msg(uchar adtyp, char olet)
         }
         pline("%s gets slightly %s!", Monnam(u.ustuck), adj);
     }
+}
+
+/*
+ * The current hero is caught in an explosion at <x,y>: 'uhurt' is 1 if
+ * only their items are affected (they resist), 2 if they are hurt too.
+ * 'byname' names the hero who set it off when that's someone else
+ * (multiplayer), else Null.
+ */
+staticfn void
+explode_hurt_hero(
+    int uhurt, int damu, int dam, const char *str, uchar adtyp, int type,
+    char olet, boolean generic, boolean do_hallu, char *hallu_buf,
+    boolean grabbing, coord grabxy, coordxy x, coordxy y,
+    const char *byname)
+{
+    /* give message for any monster-induced explosion
+       or player-induced one other than scroll of fire */
+    if (flags.verbose && (type < 0 || olet != SCROLL_CLASS)) {
+        if (do_hallu) { /* (see explanation above) */
+            do {
+                Sprintf(hallu_buf, "%s explosion",
+                        s_suffix(rndmonnam((char *) 0)));
+            } while (*hallu_buf != lowc(*hallu_buf));
+            str = hallu_buf;
+        }
+        You("are caught in the %s!", str);
+        iflags.last_msg = PLNMSG_CAUGHT_IN_EXPLOSION;
+    }
+    /* do property damage first, in case we end up leaving bones */
+    if (adtyp == AD_FIRE)
+        burn_away_slime();
+    if (Invulnerable) {
+        damu = 0;
+        You("are unharmed!");
+    } else if (adtyp == AD_PHYS || adtyp == AD_ACID)
+        damu = Maybe_Half_Phys(damu);
+    if (adtyp == AD_FIRE) {
+        (void) burnarmor(&youmonst);
+        ignite_items(invent);
+    }
+    (void) destroy_items(&youmonst, (int) adtyp, dam);
+
+    ugolemeffects((int) adtyp, damu);
+    if (uhurt == 2) {
+        /* if poly'd hero is grabbing another victim, hero takes
+           double damage (note: don't rely on u.ustuck here because
+           that victim might have been killed when hit by the blast) */
+        if (grabbing && dist2((int) grabxy.x, (int) grabxy.y, x, y) <= 2)
+            damu *= 2;
+        /* hero does not get same fire-resistant vs cold and
+           cold-resistant vs fire double damage as monsters [why not?] */
+        if (Upolyd)
+            u.mh -= damu;
+        else
+            u.uhp -= damu;
+        disp.botl = TRUE;
+    }
+
+    /* You resisted the damage, lets not keep that to ourselves */
+    if (uhurt == 1)
+        monstseesu_ad(adtyp);
+    else
+        monstunseesu_ad(adtyp);
+
+    if (u.uhp <= 0 || (Upolyd && u.mh <= 0)) {
+        if (Upolyd) {
+            rehumanize();
+        } else {
+            if (olet == MON_EXPLODE) {
+                if (generic) {
+                    /* explosion was unseen; str=="explosion", */
+                    /* svk.killer.name=="gas spore's explosion" */
+                    if (!strcmp(str, "explosion"))
+                        Strcpy(svk.killer.name, str);
+                } else if (str != svk.killer.name && str != hallu_buf) {
+                    Strcpy(svk.killer.name, str);
+                }
+                svk.killer.format = KILLED_BY_AN;
+            } else if (olet == TRAP_EXPLODE) {
+                svk.killer.format = NO_KILLER_PREFIX;
+                Snprintf(svk.killer.name, sizeof svk.killer.name,
+                         "caught %sself in a %s", uhim(),
+                         str);
+            } else if (type >= 0 && byname) {
+                /* Multiplayer: caught in another hero's blast */
+                svk.killer.format = KILLED_BY;
+                Snprintf(svk.killer.name, sizeof svk.killer.name,
+                         "%s %s", s_suffix(byname), str);
+            } else if (type >= 0 && olet != SCROLL_CLASS) {
+                svk.killer.format = NO_KILLER_PREFIX;
+                Snprintf(svk.killer.name, sizeof svk.killer.name,
+                         "caught %sself in %s own %s", uhim(),
+                         uhis(), str);
+            } else {
+                svk.killer.format = (!strcmpi(str, "tower of flame")
+                                 || !strcmpi(str, "fireball"))
+                                    ? KILLED_BY_AN
+                                    : KILLED_BY;
+                Strcpy(svk.killer.name, str);
+            }
+            if (iflags.last_msg == PLNMSG_CAUGHT_IN_EXPLOSION
+                || iflags.last_msg == PLNMSG_TOWER_OF_FLAME) /*seffects()*/
+                pline("It is fatal.");
+            else
+                pline_The("%s is fatal.", str);
+            /* Known BUG: BURNING suppresses corpse in bones data,
+               but done does not handle killer reason correctly */
+            done((adtyp == AD_FIRE) ? BURNING : DIED);
+        }
+    }
+    exercise(A_STR, FALSE);
 }
 
 /* Note: I had to choose one of three possible kinds of "type" when writing
@@ -588,98 +702,33 @@ explode(
     }
 
     /* Do your injury last */
-    if (uhurt) {
-        /* give message for any monster-induced explosion
-           or player-induced one other than scroll of fire */
-        if (flags.verbose && (type < 0 || olet != SCROLL_CLASS)) {
-            if (do_hallu) { /* (see explanation above) */
-                do {
-                    Sprintf(hallu_buf, "%s explosion",
-                            s_suffix(rndmonnam((char *) 0)));
-                } while (*hallu_buf != lowc(*hallu_buf));
-                str = hallu_buf;
-            }
-            You("are caught in the %s!", str);
-            iflags.last_msg = PLNMSG_CAUGHT_IN_EXPLOSION;
-        }
-        /* do property damage first, in case we end up leaving bones */
-        if (adtyp == AD_FIRE)
-            burn_away_slime();
-        if (Invulnerable) {
-            damu = 0;
-            You("are unharmed!");
-        } else if (adtyp == AD_PHYS || adtyp == AD_ACID)
-            damu = Maybe_Half_Phys(damu);
-        if (adtyp == AD_FIRE) {
-            (void) burnarmor(&youmonst);
-            ignite_items(invent);
-        }
-        (void) destroy_items(&youmonst, (int) adtyp, dam);
+    if (uhurt)
+        explode_hurt_hero(uhurt, damu, dam, str, adtyp, type, olet, generic,
+                          do_hallu, hallu_buf, grabbing, grabxy, x, y,
+                          (const char *) 0);
 
-        ugolemeffects((int) adtyp, damu);
-        if (uhurt == 2) {
-            /* if poly'd hero is grabbing another victim, hero takes
-               double damage (note: don't rely on u.ustuck here because
-               that victim might have been killed when hit by the blast) */
-            if (grabbing && dist2((int) grabxy.x, (int) grabxy.y, x, y) <= 2)
-                damu *= 2;
-            /* hero does not get same fire-resistant vs cold and
-               cold-resistant vs fire double damage as monsters [why not?] */
-            if (Upolyd)
-                u.mh -= damu;
-            else
-                u.uhp -= damu;
-            disp.botl = TRUE;
-        }
+    /* Multiplayer: other heroes caught in the blast, with their own
+       resistances; the damage reduction above for breaking a wand only
+       applies to the hero who broke it */
+    if (!inside_engulfer && hero_count() > 1) {
+        struct hero *was = cur_hero, *h;
+        int hurt;
+        coord nograb;
 
-        /* You resisted the damage, lets not keep that to ourselves */
-        if (uhurt == 1)
-            monstseesu_ad(adtyp);
-        else
-            monstunseesu_ad(adtyp);
-
-        if (u.uhp <= 0 || (Upolyd && u.mh <= 0)) {
-            if (Upolyd) {
-                rehumanize();
-            } else {
-                if (olet == MON_EXPLODE) {
-                    if (generic) {
-                        /* explosion was unseen; str=="explosion", */
-                        /* svk.killer.name=="gas spore's explosion" */
-                        if (!strcmp(str, "explosion"))
-                            Strcpy(svk.killer.name, str);
-                    } else if (str != svk.killer.name && str != hallu_buf) {
-                        Strcpy(svk.killer.name, str);
-                    }
-                    svk.killer.format = KILLED_BY_AN;
-                } else if (olet == TRAP_EXPLODE) {
-                    svk.killer.format = NO_KILLER_PREFIX;
-                    Snprintf(svk.killer.name, sizeof svk.killer.name,
-                             "caught %sself in a %s", uhim(),
-                             str);
-                } else if (type >= 0 && olet != SCROLL_CLASS) {
-                    svk.killer.format = NO_KILLER_PREFIX;
-                    Snprintf(svk.killer.name, sizeof svk.killer.name,
-                             "caught %sself in %s own %s", uhim(),
-                             uhis(), str);
-                } else {
-                    svk.killer.format = (!strcmpi(str, "tower of flame")
-                                     || !strcmpi(str, "fireball"))
-                                        ? KILLED_BY_AN
-                                        : KILLED_BY;
-                    Strcpy(svk.killer.name, str);
-                }
-                if (iflags.last_msg == PLNMSG_CAUGHT_IN_EXPLOSION
-                    || iflags.last_msg == PLNMSG_TOWER_OF_FLAME) /*seffects()*/
-                    pline("It is fatal.");
-                else
-                    pline_The("%s is fatal.", str);
-                /* Known BUG: BURNING suppresses corpse in bones data,
-                   but done does not handle killer reason correctly */
-                done((adtyp == AD_FIRE) ? BURNING : DIED);
-            }
+        nograb.x = nograb.y = 0;
+        for (k = 0; k < MAX_HEROES; k++) {
+            h = &heroes[k];
+            if (!h->active || h == was || !on_level(&h->you.uz, &u.uz)
+                || abs(h->you.ux - x) > 1 || abs(h->you.uy - y) > 1)
+                continue;
+            switch_hero(h);
+            hurt = (explosionmask(&youmonst, adtyp, olet) & EXPL_HERO) ? 1
+                                                                       : 2;
+            explode_hurt_hero(hurt, dam, dam, str, adtyp, type, olet,
+                              generic, do_hallu, hallu_buf, FALSE, nograb,
+                              x, y, (type >= 0) ? was->name : 0);
+            switch_hero(was);
         }
-        exercise(A_STR, FALSE);
     }
 
     if (shopdamage) {

@@ -107,6 +107,8 @@ struct hero {
     int screen;              /* which player terminal shows this hero's view
                               * (curses player index; 0 in hot-seat play) */
     struct hero *waiting_for; /* last hero this player was told about */
+    coord bumped;            /* where this hero last bumped into an ally
+                              * they couldn't see (0,0 if none) */
     genericptr_t stash;      /* per-hero globals while not current;
                               * see hero_globals[] in heroes.c */
     struct you you;          /* formerly the global 'u' */

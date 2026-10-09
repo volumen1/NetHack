@@ -4845,6 +4845,8 @@ dobuzz(
 
     tmp_at(DISP_BEAM, zapdir_to_glyph(dx, dy, hdmgtype));
     while (range-- > 0) {
+        struct hero *other = 0; /* another hero in the ray's path */
+
         lsx = sx;
         sx += dx;
         lsy = sy;
@@ -4972,9 +4974,18 @@ dobuzz(
                     || (canseemon(mon) && !disguised_as_non_mon(mon)))
                     miss(flash_str(fltyp, FALSE), mon);
             }
-        } else if (u_at(sx, sy) && range >= 0) {
+        } else if (range >= 0
+                   && (u_at(sx, sy)
+                       || (other = other_hero_at(sx, sy)) != 0)) {
+            /* Multiplayer: another hero in the ray's path is hit just as
+               the current one would be; make them current meanwhile */
+            struct hero *was = cur_hero;
+
+            if (other)
+                switch_hero(other);
             nomul(0);
-            if (u.usteed && !rn2(3) && !mon_reflects(u.usteed, (char *) 0)) {
+            if (!other && u.usteed && !rn2(3)
+                && !mon_reflects(u.usteed, (char *) 0)) {
                 mon = u.usteed;
                 goto buzzmonst;
             } else if (!forcemiss && zap_hit((int) u.uac, 0)) {
@@ -5007,6 +5018,8 @@ dobuzz(
                 (void) flashburn((long) d(nd, 50), TRUE);
             stop_occupation();
             nomul(0);
+            if (other)
+                switch_hero(was);
         }
         /* gas that missed or that hit without being reflected will leave
            a 1x1 cloud here; the earlier zap_over_floor() was deferred */

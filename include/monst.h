@@ -198,7 +198,8 @@ struct monst {
     long mlstmv;           /* for catching up with lost time */
     long mstate;           /* debugging info on monsters stored here */
     long migflags;         /* migrating flags */
-    long mspare1;
+    long mtarget;          /* multiplayer: 1 + index of the hero this
+                            * monster is after (heroes[]), or 0 */
     struct obj *minvent;   /* mon's inventory */
     struct obj *mw;        /* mon's weapon */
     long misc_worn_check;  /* mon's wornmask */

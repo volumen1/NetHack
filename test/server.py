@@ -37,6 +37,8 @@ class Client:
         ALL_CLIENTS.append(self)
         self.screen = pyte.Screen(80, 24)
         self.stream = pyte.ByteStream(self.screen)
+        self.raw = bytearray()  # everything received, for messages that
+                                # scroll away before the screen is read
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             os.environ.update(TERM="xterm", LINES="24", COLUMNS="80")
@@ -54,9 +56,32 @@ class Client:
                 if not data:
                     return
                 self.stream.feed(data)
+                self.raw.extend(data)
 
     def text(self):
         return "\n".join(line.rstrip() for line in self.screen.display)
+
+    def mark(self):
+        """Position in the output, for since()."""
+        return len(self.raw)
+
+    def since(self, mark):
+        """Output received after mark, as text (escape codes removed)."""
+        data = bytes(self.raw[mark:]).decode("latin-1")
+        return re.sub(r"\x1b\[[0-9;?]*[A-Za-z]|\x1b[()][A-Z0-9]|\x1b[=>]",
+                      "", data)
+
+    def seen_since(self, mark, pattern, timeout=10):
+        """Wait until pattern appears in the output after mark, dismissing
+        More>> prompts along the way."""
+        end = time.time() + timeout
+        while time.time() < end:
+            if re.search(pattern, self.since(mark)):
+                return True
+            if ">>" in self.screen.display[0]:
+                self.send("\r", 0.3)
+            self.pump(0.1)
+        return False
 
     def expect(self, pattern, timeout=15):
         end = time.time() + timeout
@@ -108,13 +133,24 @@ def fail(msg, client=None):
     sys.exit(1)
 
 
+# "It is your turn." as it shows up in the raw output: curses only sends
+# the characters that differ from what the line held before
+YOUR_TURN = r"It is your|your turn"
+
+
 def pass_turn(actor, other, clients, tries=5):
-    """actor searches until it is other's turn."""
+    """actor searches until it is other's turn (a fast hero can get more
+    than one move in a turn).  Only output after the search counts, so an
+    old "It is your turn" still on other's screen doesn't fool it."""
+    first = other.mark()
     for _ in range(tries):
+        mark = other.mark()
         actor.act("ms")
         pump_all(clients, 0.5)
-        if other.seen(r"It is your turn", 4):
+        if other.seen_since(mark, YOUR_TURN, 4):
             return
+    if os.environ.get("NH_TEST_DEBUG"):
+        print(repr(other.since(first)[-1500:]))
     fail("the turn never passed from %s to %s" % (actor.name, other.name))
 
 

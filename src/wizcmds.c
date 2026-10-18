@@ -882,6 +882,34 @@ RESTORE_WARNING_FORMAT_NONLITERAL
 
 DISABLE_WARNING_CONDEXPR_IS_CONSTANT
 
+/* #wizsethp command - set the hero's hit points, e.g. to test what
+   happens when a hero is badly hurt (multiplayer party alerts) */
+int
+wiz_sethp(void)
+{
+    char buf[BUFSZ];
+    int hp, *curhp = Upolyd ? &u.mh : &u.uhp, hpmax = Upolyd ? u.mhmax
+                                                              : u.uhpmax;
+
+    if (!wizard) {
+        pline(unavailcmd, ecname_from_fn(wiz_sethp));
+        return ECMD_OK;
+    }
+    Sprintf(buf, "Set hit points to what (1..%d)?", hpmax);
+    getlin(buf, buf);
+    if (*buf == '\033' || !*buf)
+        return ECMD_CANCEL;
+    hp = atoi(buf);
+    if (hp < 1 || hp > hpmax) {
+        pline("That's not between 1 and %d.", hpmax);
+        return ECMD_OK;
+    }
+    *curhp = hp;
+    disp.botl = TRUE;
+    pline("Your hit points are now %d(%d).", hp, hpmax);
+    return ECMD_OK;
+}
+
 /* #wizsmell command - test usmellmon(). */
 int
 wiz_smell(void)

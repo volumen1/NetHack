@@ -597,6 +597,7 @@ dodrink(void)
         }
     }
     otmp->in_use = TRUE; /* you've opened the stopper */
+    observe(OBS_QUAFF, (struct monst *) 0, otmp);
 
     if (objdescr_is(otmp, "milky")
         && !(svm.mvitals[PM_GHOST].mvflags & G_GONE)

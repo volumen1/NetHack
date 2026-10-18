@@ -474,7 +474,7 @@ Each milestone should end in something that runs.
 | M1 | Hero indirection (§3.1). Two heroes on one level, **hot-seat** on one terminal, alternating turns. **Done** (§11.2). | The `cur_hero` approach works; most code runs unchanged. |
 | M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. **Done** (§11.3). | Several players, several screens. |
 | M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. **Done** (§11.4). | Multiple heroes in the same fight. |
-| M4 | Message routing v1 + location-based messages (§7.1), party panel. | Each player understands what's going on. |
+| M4 | Message routing v1 + location-based messages (§7.1), party panel. **Done** (§11.5). | Each player understands what's going on. |
 | M5 | Hybrid time model with coroutines and per-level lock (§4). | The game feels right. **Highest gameplay risk; playtest heavily.** |
 | M6 | Multiple live levels (§3.2). | The party can split. **Highest engine risk.** |
 | M7 | Per-hero state audit (§6.2): shops, priests, pets, quest status, etc. | Correct rules everywhere. |
@@ -630,6 +630,50 @@ Each milestone should end in something that runs.
   accidental hit) and `test/blasts.py` (a sleep ray and a wand explosion
   reach the other hero). Both need `pyte`, and `blasts.py` uses debug
   mode.
+
+### 11.5 M4 notes
+
+- **Observer messages** (`observe()` in `heroes.c`): when a hero acts, the
+  other heroes who can see them get one line about it: "Alice hits the
+  jackal.", "Alice misses the jackal.", "Alice kills the jackal!", "Alice
+  zaps a wand.", "Alice drinks a potion.", "Alice reads a scroll." (or
+  spellbook), "Alice casts a spell.", "Alice prays.", "Alice throws a
+  dagger." The hooks are where the actor's own message is given (uhitm.c,
+  mon.c, zap.c, potion.c, read.c, spell.c, pray.c, dothrow.c).
+  - Who can see is worked out from the actor's side, since vision is only
+    computed for the current hero: line of sight is symmetric, so the
+    observer's spot must be in the actor's line of sight, with the actor's
+    spot lit or the observer next to them. Blind observers, and observers
+    who can't see an invisible actor, get nothing.
+  - Messages are deliberately vague (which wand, which potion) so they
+    don't reveal more than watching would; identification stays shared as
+    before.
+  - Hot-seat heroes share the actor's screen, so they don't get them.
+  - This covers part of M10's `pline_obs`. Still to do: thrown objects
+    hitting, monsters' attacks on other heroes (those messages already go
+    to the hero being attacked), and sounds ("You hear Alice ...").
+- **Badly-hurt alerts** (`party_health_check()`): after each action that
+  took time, a hero who dropped below a third of their hit points is
+  announced to everyone else once ("Bob is badly hurt!  (HP 3 of 16)").
+  It's announced again only after they heal past half. Polymorphed heroes
+  are measured by their monster form's hit points.
+- **`#party`** (`doparty()`) lists every hero, marking you with `*`: name,
+  race and role, level, HP, dungeon level, who is moving now, and
+  conditions (helpless, blind, hallucinating, confused, stunned, ill,
+  turning to stone, hungry/weak). It takes no time. A permanent party
+  panel on the screen (§7.2) isn't done; `#party` is the v1.
+- **Turn messages:** "It is your turn." is now added after what arrived
+  while watching ("Alice kills the jackal!  It is your turn.") rather
+  than clearing the message line first, so nothing is lost.
+- **`#wizsethp`** (debug mode) sets your hit points, for testing the
+  alerts.
+- **Tests:** `test/party.py` (server mode, debug mode, two players): the
+  other player sees the prayer and the attack on a lichen, `#party` lists
+  both and takes no time, and the badly-hurt alert arrives. The server
+  test helpers now read the raw output after a mark, since messages for
+  waiting players can scroll away before the screen is checked; curses
+  only sends the changed characters of a line, so "It is your turn." is
+  matched loosely.
 
 ---
 

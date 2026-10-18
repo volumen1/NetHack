@@ -2658,6 +2658,7 @@ dozap(void)
         return ECMD_CANCEL;
 
     check_unpaid(obj);
+    observe(OBS_ZAP, (struct monst *) 0, obj);
 
     need_dir = objects[obj->otyp].oc_dir != NODIR;
     if (!zappable(obj)) {

@@ -472,6 +472,9 @@ moveloop_core(void)
                 switch_hero(next);
                 announce_hero_turn();
             }
+            /* after the turn announcement, which starts a fresh message
+               line, so the player about to move sees any alert */
+            party_health_check();
             refresh_other_screens();
         }
     } /* actual time passed */

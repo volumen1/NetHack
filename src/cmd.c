@@ -1798,6 +1798,8 @@ struct ext_func_tab extcmdlist[] = {
     /* [should #panic actually autocomplete?] */
     { '\0',   "panic", "test panic routine (fatal to game)",
               wiz_panic, IFBURIED | AUTOCOMPLETE | WIZMODECMD, NULL },
+    { '\0',   "party", "show the heroes in your party",
+              doparty, IFBURIED | AUTOCOMPLETE | GENERALCMD, NULL },
     { 'p',    "pay", "pay your shopping bill",
               dopay, CMD_M_PREFIX, NULL },
     { '|',    "perminv", "scroll persistent inventory display",
@@ -1995,6 +1997,8 @@ struct ext_func_tab extcmdlist[] = {
               wiz_rumor_check, IFBURIED | AUTOCOMPLETE | WIZMODECMD, NULL },
     { '\0',   "wizseenv", "show map locations' seen vectors",
               wiz_show_seenv, IFBURIED | AUTOCOMPLETE | WIZMODECMD, NULL },
+    { '\0',   "wizsethp", "set your hit points",
+              wiz_sethp, IFBURIED | AUTOCOMPLETE | WIZMODECMD, NULL },
     { '\0', "wizshownhuuid", "show NHUUID for this game",
               wiz_show_nhuuid, AUTOCOMPLETE | WIZMODECMD, NULL },
     { '\0',   "wizsmell", "smell monster",

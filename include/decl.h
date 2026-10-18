@@ -109,6 +109,8 @@ struct hero {
     struct hero *waiting_for; /* last hero this player was told about */
     coord bumped;            /* where this hero last bumped into an ally
                               * they couldn't see (0,0 if none) */
+    boolean hurt_warned;     /* the others were told this hero is badly
+                              * hurt; cleared once they've healed */
     genericptr_t stash;      /* per-hero globals while not current;
                               * see hero_globals[] in heroes.c */
     struct you you;          /* formerly the global 'u' */
@@ -122,6 +124,12 @@ struct hero {
         *skin, *amul, *left, *right, *blindf, *wep, *swapwep, *quiver;
     struct obj *chain; /* defined only when punished */
     struct obj *ball;
+};
+
+/* what another hero can be seen doing; see observe() in heroes.c */
+enum observed_actions {
+    OBS_HIT, OBS_MISS, OBS_KILL, OBS_ZAP, OBS_QUAFF, OBS_READ, OBS_CAST,
+    OBS_PRAY, OBS_THROW
 };
 
 extern NEARDATA struct hero heroes[MAX_HEROES];

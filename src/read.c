@@ -606,6 +606,7 @@ doread(void)
                            : (scroll->oclass == SCROLL_CLASS) ? "a scroll"
                              : something);
 
+    observe(OBS_READ, (struct monst *) 0, scroll);
     if (scroll->oclass == SPBOOK_CLASS) {
         return study_book(scroll) ? ECMD_TIME : ECMD_OK;
     }

@@ -2136,8 +2136,10 @@ can_pray(boolean praying) /* false means no messages should be given */
         return FALSE;
     }
 
-    if (praying)
+    if (praying) {
         You("begin praying to %s.", align_gname(gp.p_aligntyp));
+        observe(OBS_PRAY, (struct monst *) 0, (struct obj *) 0);
+    }
 
     if (u.ualign.type && u.ualign.type == -gp.p_aligntyp)
         alignment = -u.ualign.record; /* Opposite alignment altar */

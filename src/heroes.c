@@ -565,6 +565,197 @@ attack_hero(struct hero *oh, boolean knows)
 }
 
 /*
+ * Observer messages (doc/multiplayer-design.md, section 7.1): tell the
+ * other heroes who can see the current hero what they just did, e.g.
+ * "Alice hits the jackal." or "Alice zaps a wand."  'mon' is the monster
+ * involved, if any; 'obj' the object (for OBS_READ and OBS_THROW).
+ *
+ * Whether another hero sees the actor is worked out from the actor's
+ * side, since vision is only computed for the current hero: line of sight
+ * is symmetric, so it's whether the actor could see the observer's spot,
+ * with the actor's own spot lit or the observer adjacent.  The observer
+ * also mustn't be blind, and must be able to see the actor if invisible.
+ * Heroes sharing the actor's screen (hot-seat) already saw the actor's
+ * own message, so they don't get one.
+ */
+void
+observe(int what, struct monst *mon, struct obj *obj)
+{
+    struct hero *actor = cur_hero, *h;
+    boolean seen[MAX_HEROES], lit, actor_invis;
+    char objbuf[BUFSZ];
+    int i, n = 0;
+
+    if (hero_count() < 2 || u.uswallow || u.uburied)
+        return;
+    lit = (levl[u.ux][u.uy].lit != 0);
+    actor_invis = (Invis != 0);
+    for (i = 0; i < MAX_HEROES; i++) {
+        h = &heroes[i];
+        seen[i] = h->active && h != actor && h->screen != actor->screen
+                  && on_level(&h->you.uz, &u.uz)
+                  && couldsee(h->you.ux, h->you.uy)
+                  && (lit || distmin(u.ux, u.uy, h->you.ux, h->you.uy) <= 1);
+        n += seen[i];
+    }
+    if (!n)
+        return;
+    objbuf[0] = '\0';
+    if (obj && what == OBS_THROW)
+        Strcpy(objbuf, an(xname(obj)));
+
+    for (i = 0; i < MAX_HEROES; i++) {
+        if (!seen[i])
+            continue;
+        switch_hero(&heroes[i]);
+        if (!Blind && (!actor_invis || See_invisible)) {
+            switch (what) {
+            case OBS_HIT:
+                pline("%s hits %s.", actor->name, mon_nam(mon));
+                break;
+            case OBS_MISS:
+                pline("%s misses %s.", actor->name, mon_nam(mon));
+                break;
+            case OBS_KILL:
+                pline("%s %s %s!", actor->name,
+                      nonliving(mon->data) ? "destroys" : "kills",
+                      mon_nam(mon));
+                break;
+            case OBS_ZAP:
+                pline("%s zaps a wand.", actor->name);
+                break;
+            case OBS_QUAFF:
+                pline("%s drinks a potion.", actor->name);
+                break;
+            case OBS_READ:
+                pline("%s reads a %s.", actor->name,
+                      (obj && obj->oclass == SPBOOK_CLASS) ? "spellbook"
+                                                           : "scroll");
+                break;
+            case OBS_CAST:
+                pline("%s casts a spell.", actor->name);
+                break;
+            case OBS_PRAY:
+                pline("%s prays.", actor->name);
+                break;
+            case OBS_THROW:
+                pline("%s throws %s.", actor->name, objbuf);
+                break;
+            }
+        }
+    }
+    switch_hero(actor);
+}
+
+/*
+ * Tell the party when one of them becomes badly hurt (below a third of
+ * their hit points), once; they're watched again after healing past half.
+ * Called after each action that took time.
+ */
+void
+party_health_check(void)
+{
+    struct hero *me = cur_hero, *h, *o;
+    boolean told[MAX_HEROES];
+    int i, j, hp, hpmax;
+
+    if (hero_count() < 2)
+        return;
+    for (i = 0; i < MAX_HEROES; i++) {
+        h = &heroes[i];
+        if (!h->active)
+            continue;
+        if (h->you.umonnum != h->you.umonster)
+            hp = h->you.mh, hpmax = h->you.mhmax; /* polymorphed */
+        else
+            hp = h->you.uhp, hpmax = h->you.uhpmax;
+        if (h->hurt_warned) {
+            if (hp * 2 >= hpmax)
+                h->hurt_warned = FALSE;
+            continue;
+        }
+        if (hp <= 0 || hp * 3 >= hpmax)
+            continue;
+        h->hurt_warned = TRUE;
+        /* once per screen: hot-seat heroes all share one */
+        for (j = 0; j < MAX_HEROES; j++)
+            told[j] = FALSE;
+        for (j = 0; j < MAX_HEROES; j++) {
+            o = &heroes[j];
+            if (!o->active || o == h || told[o->screen])
+                continue;
+            told[o->screen] = TRUE;
+            if (o->screen != me->screen)
+                switch_hero(o);
+            else
+                switch_hero(me);
+            pline("%s is badly hurt!  (HP %d of %d)", h->name, hp, hpmax);
+        }
+        switch_hero(me);
+    }
+}
+
+/*
+ * #party: list the heroes in the game, with what each player would want
+ * to know about their allies at a glance (doc/multiplayer-design.md,
+ * section 7.2).  Takes no time.
+ */
+int
+doparty(void)
+{
+    struct hero *me = cur_hero, *h;
+    char lines[MAX_HEROES][BUFSZ], cond[BUFSZ];
+    winid win;
+    int i, n = 0;
+
+    for (i = 0; i < MAX_HEROES; i++) {
+        h = &heroes[i];
+        if (!h->active)
+            continue;
+        switch_hero(h); /* some details only make sense as that hero */
+        cond[0] = '\0';
+        if (gm.multi < 0)
+            Strcat(cond, ", helpless");
+        if (Blind)
+            Strcat(cond, ", blind");
+        if (Hallucination)
+            Strcat(cond, ", hallucinating");
+        if (Confusion)
+            Strcat(cond, ", confused");
+        if (Stunned)
+            Strcat(cond, ", stunned");
+        if (Sick)
+            Strcat(cond, ", ill");
+        if (Stoned)
+            Strcat(cond, ", turning to stone");
+        if (u.uhs >= WEAK)
+            Strcat(cond, ", weak from hunger");
+        else if (u.uhs == HUNGRY)
+            Strcat(cond, ", hungry");
+        Snprintf(lines[n], BUFSZ,
+                 "%s%-12s %s %s, level %d, HP %d(%d), Dlvl %d%s%s%s",
+                 (h == me) ? "* " : "  ", h->name, gu.urace.adj,
+                 (flags.female && gu.urole.name.f) ? gu.urole.name.f
+                                                   : gu.urole.name.m,
+                 u.ulevel, Upolyd ? u.mh : u.uhp,
+                 Upolyd ? u.mhmax : u.uhpmax, depth(&u.uz),
+                 (h == input_hero && h != me) ? ", moving now" : "",
+                 cond[0] ? " -- " : "", cond[0] ? cond + 2 : "");
+        n++;
+    }
+    switch_hero(me);
+
+    win = create_nhwindow(NHW_TEXT);
+    putstr(win, ATR_BOLD, "Your party (* is you):");
+    putstr(win, 0, "");
+    for (i = 0; i < n; i++)
+        putstr(win, 0, lines[i]);
+    display_nhwindow(win, TRUE);
+    destroy_nhwindow(win);
+    return ECMD_OK;
+}
+
+/*
  * Hot-seat play: heroes share one screen, so a message about a hero other
  * than the one taking their turn (e.g. a monster attacking them, or a
  * hero swapping places with them) is labelled with that hero's name.
@@ -591,11 +782,12 @@ announce_hero_turn(void)
     if (mp_player_count() > 1) {
         /* everyone has a screen; the others get told by
            refresh_other_screens() */
-        curses_mp_watching(FALSE);
-        /* what arrived while watching has been on screen; start the turn
-           on a fresh line, as before any command */
-        clear_nhwindow(WIN_MESSAGE);
+        /* still watching while this is added, so it goes next to what
+           arrived meanwhile ("Alice kills the jackal!  It is your turn.")
+           or scrolls it away, rather than stopping for More>>; from here
+           on the usual More>> stops apply */
         pline("It is your turn.");
+        curses_mp_watching(FALSE);
         return;
     }
     docrt();

@@ -1394,6 +1394,8 @@ spelleffects(int spell_otyp, boolean atme, boolean force)
     if (!force && spelleffects_check(spell, &res, &energy))
         return res;
 
+    if (!force)
+        observe(OBS_CAST, (struct monst *) 0, (struct obj *) 0);
     u.uen -= energy;
     disp.botl = TRUE;
     exercise(A_WIS, TRUE);

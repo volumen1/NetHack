@@ -194,10 +194,11 @@ gbdates-post.501  misc.501          response.501
 
 test:
 (files for testing)
-README.md      server.py      test_des.lua   test_shk.lua
-allies.py      serverdrop.py  test_lev.lua   test_src.lua
-blasts.py      smoke.py       test_obj.lua   testmove.lua
-hotseat.py     test_cnf.lua   test_sel.lua   testwish.lua
+README.md      party.py       test_cnf.lua   test_sel.lua
+allies.py      server.py      test_des.lua   test_shk.lua
+blasts.py      serverdrop.py  test_lev.lua   test_src.lua
+hotseat.py     smoke.py       test_obj.lua   testmove.lua
+                                             testwish.lua
 
 util:
 (files for all versions)

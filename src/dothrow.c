@@ -266,6 +266,7 @@ throw_obj(struct obj *obj, int shotlimit)
                try to unsplit it from potential parent stack below */
             obj = (struct obj *) 0;
         }
+        observe(OBS_THROW, (struct monst *) 0, otmp);
         freeinv(otmp);
         throwit(otmp, wep_mask, twoweap, oldslot);
         encumber_msg();

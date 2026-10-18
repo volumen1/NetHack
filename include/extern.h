@@ -1224,6 +1224,9 @@ extern struct hero *first_ready_hero(void);
 extern void add_extra_heroes(void);
 extern void announce_hero_turn(void);
 extern const char *hero_message_owner(void);
+extern void observe(int, struct monst *, struct obj *);
+extern int doparty(void);
+extern void party_health_check(void);
 extern void move_into_hero(struct hero *, coordxy, coordxy);
 extern void refresh_other_screens(void);
 
@@ -3951,6 +3954,7 @@ extern int wiz_show_stats(void);
 extern int wiz_show_vision(void);
 extern int wiz_show_wmodes(void);
 extern int wiz_smell(void);
+extern int wiz_sethp(void);
 extern int wiz_telekinesis(void);
 extern int wiz_where(void);
 extern int wiz_wish(void);

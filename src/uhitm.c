@@ -1656,6 +1656,8 @@ hmon_hitmon_msg_hit(
                   : Role_if(PM_BARBARIAN) ? "smite"
                     : "hit",
                 mon_nam(mon), canseemon(mon) ? exclam(hmd->dmg) : ".");
+        if (!hmd->thrown)
+            observe(OBS_HIT, mon, obj);
     }
 }
 
@@ -5209,6 +5211,7 @@ missum(
         You("miss %s.", mon_nam(mdef));
     else
         You("miss it.");
+    observe(OBS_MISS, mdef, (struct obj *) 0);
     if (!helpless(mdef))
         wakeup(mdef, TRUE);
 }

@@ -14,6 +14,7 @@
  * the outgoing player's copy and loads the incoming one's.
  */
 
+#include <poll.h>
 #include "curses.h"
 #include "hack.h"
 #include "wincurs.h"
@@ -24,6 +25,9 @@ struct curs_player {
     boolean used;
     SCREEN *scr;         /* this player's ncurses screen */
     FILE *in, *out;      /* its terminal, for newterm() */
+    int fd;              /* where its input comes from */
+    WINDOW *peek;        /* for looking at typed-ahead keys; see
+                          * curses_mp_peek_key() */
     char *stash;         /* port state while another player is current */
 };
 
@@ -96,6 +100,7 @@ curses_mp_init(SCREEN *first)
         curs_stash(&pristine);
     cplayers[0].used = TRUE;
     cplayers[0].scr = first;
+    cplayers[0].fd = fileno(stdin);
     ccur = 0;
 }
 
@@ -137,6 +142,7 @@ curses_add_player(int fd, const char *term)
     }
     cp->scr = scr;
     cp->used = TRUE;
+    cp->fd = fileno(cp->in);
     ccur = i;
     curses_setup_terminal(FALSE);
     curses_status_init_player();
@@ -164,6 +170,86 @@ void
 curses_mp_watching(boolean watching)
 {
     curses_set_watching(watching);
+}
+
+/*
+ * The next key player 'idx' has typed but that hasn't been read yet,
+ * without taking it: -1 if there's none, -2 if their terminal has
+ * something that isn't a key yet (or has hung up; the normal input code
+ * deals with that).  Keys can be waiting in two places: the terminal,
+ * and ncurses' own queue (it reads ahead while matching escape
+ * sequences, and ungetch() puts keys back there).  The only way to see
+ * the queue is to take a key and put it back, which is done on a 1x1
+ * window that is never drawn in, so the wgetch() doesn't refresh
+ * anything.
+ */
+int
+curses_mp_peek_key(int idx)
+{
+    struct curs_player *cp;
+    struct pollfd pfd;
+    int was = ccur, ch;
+
+    if (idx < 0 || idx >= MAX_HEROES || !cplayers[idx].used
+        || !cplayers[idx].scr)
+        return -1;
+    cp = &cplayers[idx];
+    curses_switch_player(idx);
+    if (!cp->peek) {
+        cp->peek = newwin(1, 1, LINES - 1, COLS - 1);
+        if (cp->peek) {
+            keypad(cp->peek, TRUE);
+            nodelay(cp->peek, TRUE);
+            untouchwin(cp->peek);
+        }
+    }
+    ch = cp->peek ? wgetch(cp->peek) : ERR;
+    if (ch != ERR) {
+        (void) ungetch(ch);
+    } else {
+        pfd.fd = cp->fd, pfd.events = POLLIN, pfd.revents = 0;
+        ch = (poll(&pfd, 1, 0) > 0 && pfd.revents != 0) ? -2 : -1;
+    }
+    curses_switch_player(was);
+    return ch;
+}
+
+/*
+ * Wait until one of the n players in idx[] may have typed something, or
+ * 'ms' milliseconds have passed (no limit if negative).  Callers check
+ * curses_mp_peek_key() first, since keys in ncurses' queue don't wake
+ * this up.
+ */
+void
+curses_mp_wait_input(const int *idx, int n, long ms)
+{
+    struct pollfd pfd[MAX_HEROES];
+    int i, k = 0;
+
+    for (i = 0; i < n && k < MAX_HEROES; i++) {
+        if (idx[i] < 0 || idx[i] >= MAX_HEROES || !cplayers[idx[i]].used)
+            continue;
+        pfd[k].fd = cplayers[idx[i]].fd;
+        pfd[k].events = POLLIN;
+        pfd[k].revents = 0;
+        k++;
+    }
+    if (ms > 24L * 60 * 60 * 1000)
+        ms = 24L * 60 * 60 * 1000;
+    (void) poll(pfd, (nfds_t) k, (int) ms);
+}
+
+/* wait up to 'ms' milliseconds for the current player to type
+   something; FALSE if they didn't */
+boolean
+curses_mp_key_wait(long ms)
+{
+    int me = ccur;
+
+    if (curses_mp_peek_key(me) != -1)
+        return TRUE;
+    curses_mp_wait_input(&me, 1, ms);
+    return curses_mp_peek_key(me) != -1;
 }
 
 /* end of game: put the other players' terminals back in normal mode;

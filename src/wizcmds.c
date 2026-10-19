@@ -910,6 +910,33 @@ wiz_sethp(void)
     return ECMD_OK;
 }
 
+/* #wizcalm command - make every monster on the level peaceful, e.g. so
+   that a test of multiplayer timing isn't upset by a hostile monster
+   wandering into view */
+int
+wiz_calm(void)
+{
+    struct monst *mtmp;
+    int n = 0;
+
+    if (!wizard) {
+        pline(unavailcmd, ecname_from_fn(wiz_calm));
+        return ECMD_OK;
+    }
+    for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
+        if (DEADMONSTER(mtmp) || mtmp->mtame || mtmp->mpeaceful)
+            continue;
+        mtmp->mpeaceful = 1;
+        set_malign(mtmp);
+        newsym(mtmp->mx, mtmp->my);
+        n++;
+    }
+    pline("%s calmed down.", !n ? "Nothing has"
+                             : (n == 1) ? "One monster has"
+                                        : "Every monster on the level has");
+    return ECMD_OK;
+}
+
 /* #wizsmell command - test usmellmon(). */
 int
 wiz_smell(void)

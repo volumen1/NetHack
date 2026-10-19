@@ -4,7 +4,8 @@
 Usage: python3 test/party.py PLAYGROUND_DIR
 
 Server-mode game in debug mode (the first player is named "wizard"), two
-players on their own terminals, starting next to each other:
+players on their own terminals, starting next to each other, taking turns
+(NETHACK_TURNS=strict, so that what each player sees is predictable):
   - the first player prays; the other sees "wizard prays.";
   - the other player opens #party, which lists both heroes and takes no
     time;
@@ -41,7 +42,7 @@ def main():
     ben_name = "Ben%d" % (os.getpid() % 10000)
 
     env = dict(os.environ, NETHACK_SERVER=sock, NETHACK_HEROES="2",
-               NETHACKOPTIONS=OPTIONS, HOME=tmp)
+               NETHACK_TURNS="strict", NETHACKOPTIONS=OPTIONS, HOME=tmp)
     server = subprocess.Popen([binary, "-D"], env=env,
                               stdin=subprocess.DEVNULL,
                               stdout=open(os.path.join(tmp, "log"), "w"),

@@ -75,8 +75,15 @@ moveloop_preamble(boolean resuming)
            first "random" occurrence would always kick in on turn 1 */
         svc.context.seer_turn = (long) rnd(30);
         /* give hero initial movement points; new game only--for restore,
-           pending movement points were included in the save file */
-        u.umovement = NORMAL_SPEED;
+           pending movement points were included in the save file;
+           every hero in a multiplayer game */
+        {
+            int i;
+
+            for (i = 0; i < MAX_HEROES; i++)
+                if (heroes[i].active || &heroes[i] == cur_hero)
+                    heroes[i].you.umovement = NORMAL_SPEED;
+        }
         initrack();
     }
     disp.botlx = TRUE; /* for STATUS_HILITES */
@@ -315,6 +322,7 @@ moveloop_core(void)
         struct hero *acting = cur_hero;
 
         u.umovement -= NORMAL_SPEED;
+        hero_took_time();
 
         do { /* no hero can move this turn loop */
             encumber_msg();
@@ -464,9 +472,10 @@ moveloop_core(void)
 
         see_nearby_monsters();
 
-        /* hot-seat: hand the keyboard to the next hero with a move left */
+        /* hot-seat: hand the keyboard to the next hero with a move left
+           (with the hybrid time model, hero_schedule() picks instead) */
         {
-            struct hero *next = next_ready_hero();
+            struct hero *next = hybrid_turns() ? 0 : next_ready_hero();
 
             if (next && next != cur_hero) {
                 switch_hero(next);
@@ -478,6 +487,15 @@ moveloop_core(void)
             refresh_other_screens();
         }
     } /* actual time passed */
+
+    /* server game: who moves next (doc/multiplayer-design.md, sec. 4) */
+    if (hero_schedule()) {
+        /* this hero gives up their move: a pure pass, which doesn't
+           search, rest or interrupt anything */
+        u.umoved = FALSE;
+        svc.context.move = 1;
+        return;
+    }
 
     /****************************************/
     /* once-per-player-input things go here */

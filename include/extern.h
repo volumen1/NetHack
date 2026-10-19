@@ -466,6 +466,7 @@ extern void lock_mouse_buttons(boolean);
 extern void reset_commands(boolean);
 extern void update_rest_on_space(void);
 extern void rhack(int);
+extern boolean key_runs_free_cmd(int);
 extern int doextlist(void);
 extern int extcmd_via_menu(void);
 extern int enter_explore_mode(void);
@@ -1209,6 +1210,9 @@ extern void maybe_shuffle_customizations(void);
 extern int curses_add_player(int, const char *);
 extern void curses_switch_player(int);
 extern void curses_mp_watching(boolean);
+extern int curses_mp_peek_key(int);
+extern void curses_mp_wait_input(const int *, int, long);
+extern boolean curses_mp_key_wait(long);
 
 /* ### heroes.c ### */
 
@@ -1229,6 +1233,12 @@ extern int doparty(void);
 extern void party_health_check(void);
 extern void move_into_hero(struct hero *, coordxy, coordxy);
 extern void refresh_other_screens(void);
+extern boolean hybrid_turns(void);
+extern void hero_took_time(void);
+extern boolean hero_schedule(void);
+extern long hero_prompt_timeout(void);
+extern void hero_prompt_timed_out(void);
+extern boolean hero_free_only(void);
 
 /* ### hack.c ### */
 
@@ -3954,6 +3964,7 @@ extern int wiz_show_stats(void);
 extern int wiz_show_vision(void);
 extern int wiz_show_wmodes(void);
 extern int wiz_smell(void);
+extern int wiz_calm(void);
 extern int wiz_sethp(void);
 extern int wiz_telekinesis(void);
 extern int wiz_where(void);

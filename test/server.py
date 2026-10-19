@@ -7,7 +7,9 @@ Usage: python3 test/server.py PLAYGROUND_DIR
 Starts the game in server mode, connects two nh-connect clients on
 separate pseudo-terminals, has both pick characters, checks that each
 player sees their own screen, that turns alternate, and that the waiting
-player is told whose turn it is.  Exits 0 on success and 1 on failure.
+player is told whose turn it is.  Turns only alternate with
+NETHACK_TURNS=strict, which this test uses; test/timing.py covers the
+default, real-time play.  Exits 0 on success and 1 on failure.
 Needs the 'pyte' terminal emulator (pip install pyte).
 """
 
@@ -133,6 +135,10 @@ def fail(msg, client=None):
     sys.exit(1)
 
 
+# the game has begun: the first player has seen the welcome, which the
+# real-time play notice can replace straight away
+GAME_STARTED = r"welcome to NetHack|Real-time play"
+
 # "It is your turn." as it shows up in the raw output: curses only sends
 # the characters that differ from what the line held before
 YOUR_TURN = r"It is your|your turn"
@@ -175,7 +181,7 @@ def main():
     tag = os.getpid() % 10000
 
     env = dict(os.environ, NETHACK_SERVER=sock, NETHACK_HEROES="2",
-               NETHACKOPTIONS=OPTIONS, HOME=tmp)
+               NETHACK_TURNS="strict", NETHACKOPTIONS=OPTIONS, HOME=tmp)
     log = open(os.path.join(tmp, "server.log"), "w")
     server = subprocess.Popen([binary], env=env, stdin=subprocess.DEVNULL,
                               stdout=log, stderr=subprocess.STDOUT)
@@ -203,10 +209,10 @@ def main():
         bob.send("y")
         alice.expect(r"Dlvl:1")
         for _ in range(4):  # intro text and --More-- prompts
-            if "welcome to NetHack" in alice.text():
+            if re.search(GAME_STARTED, alice.text()):
                 break
             alice.send("\r", 0.5)
-        alice.expect(r"welcome to NetHack")
+        alice.expect(GAME_STARTED)
         print("ok: both players created characters on their own terminals")
 
         alice.expect(r"Ann%d the" % tag)

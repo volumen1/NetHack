@@ -10,13 +10,15 @@ why the game ended.  Needs the 'pyte' module (pip install pyte).
 """
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from server import Client, OPTIONS, fail, pump_all  # noqa: E402
+from server import (GAME_STARTED, OPTIONS, Client, fail,  # noqa: E402
+                    pump_all)
 
 
 def main():
@@ -57,10 +59,10 @@ def main():
         ben.send("y")
         ann.expect(r"Dlvl:1")
         for _ in range(4):
-            if "welcome to NetHack" in ann.text():
+            if re.search(GAME_STARTED, ann.text()):
                 break
             ann.send("\r", 0.5)
-        ann.expect(r"welcome to NetHack")
+        ann.expect(GAME_STARTED)
 
         # Ben's session dies; then Ann moves, so the game needs Ben
         os.kill(ben.pid, 9)

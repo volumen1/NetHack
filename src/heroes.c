@@ -13,6 +13,7 @@
  * the refactor proceeds, entries move from this list into struct hero.
  */
 
+#include <time.h>
 #include "hack.h"
 
 #define HG(v) { (genericptr_t) &(v), sizeof (v) }
@@ -92,6 +93,21 @@ static const struct hero_global {
 static char *screen_stash[MAX_HEROES];
 static struct hero *input_hero = 0; /* whose turn it is */
 
+/* the hybrid time model's state; see hero_schedule() */
+static struct {
+    boolean init;
+    boolean strict;     /* NETHACK_TURNS=strict */
+    long window_ms;     /* NETHACK_ACTION_WINDOW */
+    long danger_ms;     /* NETHACK_DANGER_LOCK */
+    long prompt_ms;     /* NETHACK_PROMPT_TIMEOUT */
+    boolean started;    /* hero_schedule() has run: prompts time out */
+    boolean open;       /* the action window is open... */
+    long opened;        /* ...since this time */
+    long turn;          /* the turn the phases are for */
+    boolean free_only;  /* running a command out of turn */
+    struct hero *timed_out; /* didn't answer a prompt in time */
+} tm;
+
 staticfn void switch_screen(int, int);
 staticfn size_t hero_globals_size(void);
 staticfn void stash_globals(struct hero *);
@@ -160,8 +176,10 @@ switch_screen(int from, int to)
 
     curses_switch_player(to);
     /* the player whose turn it is gets the usual More>> stops; the
-       others just watch */
-    curses_mp_watching(input_hero && to != input_hero->screen);
+       others just watch (with the hybrid time model, everyone does
+       while the game waits for someone to act) */
+    curses_mp_watching(input_hero ? (to != input_hero->screen)
+                                  : tm.started);
 
     if ((p = screen_stash[to]) != 0) {
         (void) memcpy(gg.gbuf, p, sizeof gg.gbuf), p += sizeof gg.gbuf;
@@ -809,6 +827,8 @@ refresh_other_screens(void)
     input_hero = was;
     if (mp_player_count() < 2)
         return;
+    if (hybrid_turns())
+        flush_screen(1); /* someone else may be next, so finish this one */
     for (i = 0; i < MAX_HEROES; i++) {
         h = &heroes[i];
         if (!h->active || h->screen == was->screen)
@@ -819,7 +839,7 @@ refresh_other_screens(void)
         for (j = 0; j < MAX_HEROES; j++) /* allies, even out of sight */
             if (heroes[j].active && &heroes[j] != h)
                 newsym(heroes[j].you.ux, heroes[j].you.uy);
-        if (h->waiting_for != was) {
+        if (h->waiting_for != was && !hybrid_turns()) {
             pline("It is %s's turn.", was->name);
             h->waiting_for = was;
         }
@@ -828,6 +848,420 @@ refresh_other_screens(void)
     }
     switch_hero(was);
     was->waiting_for = (struct hero *) 0;
+}
+
+/*
+ * The hybrid time model for server games (doc/multiplayer-design.md,
+ * section 4).  Instead of taking turns in a fixed order, every hero who
+ * has a move left can act whenever their player types a command:
+ *
+ *  - A *phase* is one move for each hero who has one left.  The first
+ *    action that takes time opens the action window; the other heroes
+ *    then have NETHACK_ACTION_WINDOW seconds (default 1.5) to act too,
+ *    after which those who haven't simply give up that move.  A fast
+ *    hero's extra move in a turn is a phase of its own, whose window
+ *    opens as soon as it starts.
+ *  - A hero in danger (a hostile monster in view, or hurt this turn or
+ *    last) is waited for longer: NETHACK_DANGER_LOCK seconds (45).
+ *  - Multi-turn actions (running, travel, counts, occupations) carry on
+ *    by themselves, as does a helpless hero's turn.
+ *  - A hero who has given up IDLE_AFTER moves in a row is taken to be
+ *    away, and isn't waited for at all until their player types again
+ *    (unless they're in danger).
+ *  - Commands that take no time can be used out of turn; other keys
+ *    typed out of turn wait until that hero's move comes up.
+ *  - A prompt left unanswered for NETHACK_PROMPT_TIMEOUT seconds (30;
+ *    the danger lock if longer, for a hero in danger) is cancelled.
+ *
+ * The game is single-threaded: a command runs to the end, prompts and
+ * all, before anyone else's.  With every hero on one level that is the
+ * per-level lock of section 4.2; running other players' free actions
+ * during a prompt needs the coroutines planned for M6.
+ *
+ * NETHACK_TURNS=strict keeps the old way, where heroes take turns in
+ * order and each player waits for theirs.
+ */
+#define IDLE_AFTER 3 /* moves given up in a row before a hero is away */
+#define WAIT_NOTICE_TURNS 20 /* how often to say who's being waited for */
+
+
+staticfn long now_ms(void);
+staticfn long env_ms(const char *, long);
+staticfn void timing_init(void);
+staticfn genericptr_t hero_global(struct hero *, genericptr_t);
+staticfn boolean can_move_now(struct hero *);
+staticfn boolean hero_busy(struct hero *);
+staticfn boolean hostile_in_view(void);
+staticfn void check_dangers(void);
+staticfn void tell_hero(struct hero *, const char *);
+staticfn void take_move(struct hero *);
+staticfn void out_of_turn(struct hero *);
+staticfn void waiting_notices(void);
+
+staticfn long
+now_ms(void)
+{
+    struct timespec ts;
+
+    (void) clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (long) ts.tv_sec * 1000L + (long) (ts.tv_nsec / 1000000L);
+}
+
+/* a time setting, in seconds (fractions allowed), as milliseconds */
+staticfn long
+env_ms(const char *name, long dflt)
+{
+    const char *val = nh_getenv(name);
+    double secs;
+
+    if (!val || !*val)
+        return dflt;
+    secs = atof(val);
+    return (secs < 0.0) ? dflt : (long) (secs * 1000.0 + 0.5);
+}
+
+staticfn void
+timing_init(void)
+{
+    const char *turns;
+
+    if (tm.init)
+        return;
+    tm.init = TRUE;
+    tm.window_ms = env_ms("NETHACK_ACTION_WINDOW", 1500L);
+    tm.danger_ms = env_ms("NETHACK_DANGER_LOCK", 45000L);
+    tm.prompt_ms = env_ms("NETHACK_PROMPT_TIMEOUT", 30000L);
+    turns = nh_getenv("NETHACK_TURNS");
+    tm.strict = (turns && !strcmpi(turns, "strict"));
+}
+
+/* whether this game uses the hybrid time model: a server game where
+   every hero has their own player */
+boolean
+hybrid_turns(void)
+{
+    timing_init();
+    return (!tm.strict && hero_count() > 1
+            && mp_player_count() >= hero_count());
+}
+
+/* where hero h's copy of one of the hero_globals[] is */
+staticfn genericptr_t
+hero_global(struct hero *h, genericptr_t addr)
+{
+    size_t i;
+    char *p = (char *) h->stash;
+
+    if (h == cur_hero || !p)
+        return addr;
+    for (i = 0; i < SIZE(hero_globals); i++) {
+        if (hero_globals[i].addr == addr)
+            return (genericptr_t) p;
+        p += hero_globals[i].len;
+    }
+    impossible("hero_global: not a per-hero global");
+    return addr;
+}
+
+/* h has a move left in this phase */
+staticfn boolean
+can_move_now(struct hero *h)
+{
+    return (h->active && !h->acted && h->you.umovement >= NORMAL_SPEED);
+}
+
+/* h's next move doesn't need their player: a multi-turn action is under
+   way, or they're helpless */
+staticfn boolean
+hero_busy(struct hero *h)
+{
+    return (*(int *) hero_global(h, (genericptr_t) &gm.multi) != 0
+            || *(int (**)(void)) hero_global(h,
+                                       (genericptr_t) &go.occupation) != 0);
+}
+
+/* the current hero is in danger: a hostile monster in view, or they got
+   hurt this turn or last */
+staticfn boolean
+hostile_in_view(void)
+{
+    struct monst *mtmp;
+
+    if (cur_hero->hurt_turn && svm.moves - cur_hero->hurt_turn <= 1L)
+        return TRUE;
+    if (gv.vision_full_recalc)
+        vision_recalc(0);
+    for (mtmp = fmon; mtmp; mtmp = mtmp->nmon) {
+        if (DEADMONSTER(mtmp) || mtmp->mpeaceful || mtmp->mtame)
+            continue;
+        if (canspotmon(mtmp))
+            return TRUE;
+    }
+    return FALSE;
+}
+
+/* note who got hurt, and who is in danger */
+staticfn void
+check_dangers(void)
+{
+    struct hero *was = cur_hero, *h;
+    int i, hp;
+
+    for (i = 0; i < MAX_HEROES; i++) {
+        h = &heroes[i];
+        if (!h->active)
+            continue;
+        hp = (h->you.umonnum != h->you.umonster) ? h->you.mh : h->you.uhp;
+        if (hp < h->last_hp)
+            h->hurt_turn = svm.moves;
+        h->last_hp = hp;
+        if (!can_move_now(h))
+            continue;
+        switch_hero(h);
+        h->in_danger = hostile_in_view();
+    }
+    switch_hero(was);
+}
+
+/* show a message on hero o's screen */
+staticfn void
+tell_hero(struct hero *o, const char *msg)
+{
+    struct hero *was = cur_hero;
+
+    switch_hero(o);
+    if (o != input_hero)
+        curses_mp_watching(TRUE); /* not being asked anything */
+    pline("%s", msg);
+    flush_screen(1);
+    switch_hero(was);
+}
+
+/* h makes their move now */
+staticfn void
+take_move(struct hero *h)
+{
+    input_hero = h; /* before switching, so h's screen stops watching */
+    if (h != cur_hero) {
+        flush_screen(1);
+        switch_hero(h);
+    }
+    curses_mp_watching(FALSE);
+}
+
+/* h typed a command that takes no time while it isn't their move */
+staticfn void
+out_of_turn(struct hero *h)
+{
+    struct hero *was = cur_hero, *was_input = input_hero;
+    boolean was_move = svc.context.move;
+
+    take_move(h);
+    tm.free_only = TRUE;
+    rhack(0);
+    tm.free_only = FALSE;
+    flush_screen(1);
+    input_hero = was_input;
+    switch_hero(was);
+    svc.context.move = was_move;
+}
+
+/* the phase is waiting for heroes in danger: say so, now and then */
+staticfn void
+waiting_notices(void)
+{
+    struct hero *h, *o;
+    char buf[BUFSZ];
+    int i, j;
+
+    for (i = 0; i < MAX_HEROES; i++) {
+        h = &heroes[i];
+        if (!can_move_now(h)
+            || (h->told_waiting
+                && svm.moves < h->told_waiting + WAIT_NOTICE_TURNS))
+            continue;
+        h->told_waiting = svm.moves;
+        tell_hero(h, "Your allies are waiting for you.");
+        Snprintf(buf, sizeof buf, "Waiting for %s (in danger).", h->name);
+        for (j = 0; j < MAX_HEROES; j++) {
+            o = &heroes[j];
+            if (o->active && o != h)
+                tell_hero(o, buf);
+        }
+    }
+}
+
+/* the time model's part of moveloop_core(): the current hero just used
+   up a move (or gave it up) */
+void
+hero_took_time(void)
+{
+    if (!hybrid_turns())
+        return;
+    cur_hero->acted = TRUE;
+    if (!tm.open) {
+        tm.open = TRUE;
+        tm.opened = now_ms();
+    }
+}
+
+/*
+ * Server game: choose the hero who moves next, waiting for their player
+ * to type if need be (see the comment above), and make them the current
+ * hero.  Called from moveloop_core() before each command.  Returns TRUE
+ * if that hero gives up their move instead of doing something.
+ */
+boolean
+hero_schedule(void)
+{
+    struct hero *h, *pick;
+    boolean any, held[MAX_HEROES];
+    int i, n, key, scr[MAX_HEROES];
+    long now, due, wait;
+    char buf[BUFSZ];
+
+    if (!hybrid_turns())
+        return FALSE;
+    input_hero = 0; /* nobody's being asked anything yet */
+    curses_mp_watching(TRUE);
+    if (!tm.started) {
+        tm.started = TRUE;
+        Snprintf(buf, sizeof buf,
+                 "Real-time play: once someone acts, the rest have %ld.%lds.",
+                 tm.window_ms / 1000L, (tm.window_ms % 1000L) / 100L);
+        for (i = 0; i < MAX_HEROES; i++)
+            if (heroes[i].active)
+                tell_hero(&heroes[i], buf);
+    }
+    if (tm.timed_out) {
+        tell_hero(tm.timed_out, "You took too long to answer.");
+        tm.timed_out = 0;
+    }
+    check_dangers();
+
+    for (;;) {
+        /* a new turn: everyone gets a move, and the window waits for
+           someone to act */
+        if (svm.moves != tm.turn) {
+            for (i = 0; i < MAX_HEROES; i++)
+                heroes[i].acted = FALSE;
+            tm.open = FALSE;
+            tm.turn = svm.moves;
+        }
+        /* everyone with a move left has had one, but a fast hero has
+           another: a new phase; the turn is already under way, so its
+           window opens at once (otherwise the others, with no move left,
+           would wait for the fast hero for as long as their player
+           took) */
+        for (any = FALSE, i = 0; i < MAX_HEROES; i++)
+            if (can_move_now(&heroes[i]))
+                any = TRUE;
+        if (!any) {
+            for (i = 0; i < MAX_HEROES; i++)
+                heroes[i].acted = FALSE;
+            tm.open = TRUE;
+            tm.opened = now_ms();
+            check_dangers();
+        }
+
+        /* multi-turn actions carry on by themselves */
+        pick = (can_move_now(cur_hero) && hero_busy(cur_hero)) ? cur_hero
+                                                                : 0;
+        for (i = 0; !pick && i < MAX_HEROES; i++)
+            if (can_move_now(&heroes[i]) && hero_busy(&heroes[i]))
+                pick = &heroes[i];
+        if (pick) {
+            take_move(pick);
+            return FALSE;
+        }
+
+        /* typed commands, and commands queued by an earlier one */
+        for (i = 0; i < MAX_HEROES; i++) {
+            h = &heroes[i];
+            held[i] = FALSE;
+            if (!h->active)
+                continue;
+            key = curses_mp_peek_key(h->screen);
+            if (key == -1
+                && !((struct _cmd_queue **) hero_global(
+                         h, (genericptr_t) gc.command_queue))[CQ_CANNED])
+                continue;
+            if (can_move_now(h)) {
+                h->autowaits = 0;
+                take_move(h);
+                return FALSE;
+            }
+            if (key == -2 || key_runs_free_cmd(key)) {
+                out_of_turn(h);
+                i = -1; /* things may have changed; look again */
+                continue;
+            }
+            held[i] = TRUE; /* kept for this hero's next move */
+        }
+
+        /* heroes who haven't acted in time give up their move */
+        now = now_ms();
+        wait = -1L;
+        if (tm.open) {
+            for (i = 0; i < MAX_HEROES; i++) {
+                h = &heroes[i];
+                if (!can_move_now(h))
+                    continue;
+                if (h->in_danger && tm.danger_ms > 0L)
+                    due = tm.danger_ms;
+                else if (h->autowaits >= IDLE_AFTER)
+                    due = 0L;
+                else
+                    due = tm.window_ms;
+                due += tm.opened;
+                if (now >= due) {
+                    h->autowaits++;
+                    take_move(h);
+                    return TRUE;
+                }
+                if (wait < 0L || due - now < wait)
+                    wait = due - now;
+            }
+            if (now >= tm.opened + tm.window_ms)
+                waiting_notices();
+            else if (wait > tm.opened + tm.window_ms - now)
+                wait = tm.opened + tm.window_ms - now; /* to tell them */
+        }
+
+        /* wait for someone to type; a hero whose keys are being kept
+           for later would wake this up straight away */
+        for (n = 0, i = 0; i < MAX_HEROES; i++)
+            if (heroes[i].active && !held[i])
+                scr[n++] = heroes[i].screen;
+        curses_mp_wait_input(scr, n, wait);
+    }
+}
+
+/* how long the current player may take to answer a prompt, in
+   milliseconds; negative for no limit */
+long
+hero_prompt_timeout(void)
+{
+    if (!tm.started || tm.prompt_ms <= 0L || program_state.gameover
+        || !hybrid_turns())
+        return -1L;
+    if (cur_hero->in_danger && tm.danger_ms > tm.prompt_ms)
+        return tm.danger_ms;
+    return tm.prompt_ms;
+}
+
+/* the current player didn't answer a prompt in time */
+void
+hero_prompt_timed_out(void)
+{
+    tm.timed_out = cur_hero;
+}
+
+/* a command is being run out of turn: only those that take no time */
+boolean
+hero_free_only(void)
+{
+    return tm.free_only;
 }
 
 /*heroes.c*/

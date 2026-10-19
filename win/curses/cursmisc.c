@@ -62,6 +62,15 @@ curses_getch(void)
             }
         }
     } else {
+        /* server game: a prompt left unanswered is cancelled, so one
+           player can't hold up everyone (doc/multiplayer-design.md,
+           section 4.2) */
+        long ms = hero_prompt_timeout();
+
+        if (ms >= 0L && !curses_mp_key_wait(ms)) {
+            hero_prompt_timed_out();
+            return '\033';
+        }
         ch = getch();
     }
     return ch;

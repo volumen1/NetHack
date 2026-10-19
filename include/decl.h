@@ -111,6 +111,14 @@ struct hero {
                               * they couldn't see (0,0 if none) */
     boolean hurt_warned;     /* the others were told this hero is badly
                               * hurt; cleared once they've healed */
+    /* the hybrid time model (heroes.c, hero_schedule()) */
+    boolean acted;           /* has had their move in this phase */
+    boolean in_danger;       /* the phase waits longer for them */
+    int autowaits;           /* moves in a row given up by not typing */
+    int last_hp;             /* hit points when last checked, */
+    long hurt_turn;          /* and the turn they last went down */
+    long told_waiting;       /* turn they were last told the others are
+                              * waiting for them */
     genericptr_t stash;      /* per-hero globals while not current;
                               * see hero_globals[] in heroes.c */
     struct you you;          /* formerly the global 'u' */

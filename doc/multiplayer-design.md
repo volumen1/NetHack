@@ -475,8 +475,8 @@ Each milestone should end in something that runs.
 | M2 | Network: server process, ssh launcher, one curses `SCREEN` per player. Turns still alternate. **Done** (§11.3). | Several players, several screens. |
 | M3 | Closest-hero targeting (§5.1), ally display, swap places, attack confirmation, accidental PvP. **Done** (§11.4). | Multiple heroes in the same fight. |
 | M4 | Message routing v1 + location-based messages (§7.1), party panel. **Done** (§11.5). | Each player understands what's going on. |
-| M5 | Hybrid time model with coroutines and per-level lock (§4). | The game feels right. **Highest gameplay risk; playtest heavily.** |
-| M6 | Multiple live levels (§3.2). | The party can split. **Highest engine risk.** |
+| M5 | Hybrid time model with coroutines and per-level lock (§4). **Done, without coroutines** (§11.6). | The game feels right. **Highest gameplay risk; playtest heavily.** |
+| M6 | Multiple live levels (§3.2), with the coroutines of §4.2 (moved from M5). | The party can split. **Highest engine risk.** |
 | M7 | Per-hero state audit (§6.2): shops, priests, pets, quest status, etc. | Correct rules everywhere. |
 | M8 | Per-role quest branches (§8). | Everyone gets their quest. |
 | M9 | Death/rejoin, leaderboard, whole-game save/restore (§9, §10). | A full game can be played start to finish. |
@@ -674,6 +674,71 @@ Each milestone should end in something that runs.
   waiting players can scroll away before the screen is checked; curses
   only sends the changed characters of a line, so "It is your turn." is
   matched loosely.
+
+### 11.6 M5 notes
+
+- **The hybrid time model** (§4.1) runs every server game where each hero
+  has their own player (`hero_schedule()` in `heroes.c`, called from
+  `moveloop_core()` before each command). Hot-seat games, and server
+  games started with `NETHACK_TURNS=strict`, still take turns in order.
+- **Phases:** each turn starts with a phase in which every hero has a
+  move. The scheduler takes typed commands as they come; the first that
+  takes time opens the window, and when it's over, heroes who haven't
+  acted give up the move (an auto-wait: a pure pass that doesn't search,
+  rest or interrupt anything). Then the monsters and the rest of the turn
+  go on as before. Monsters still move between heroes' actions, as they
+  did between a hero's moves in single-player NetHack.
+- **Fast heroes:** a hero with a second move in the turn gets another
+  phase. Its window opens straight away, since otherwise the other
+  heroes, with no move left, would wait for the fast hero indefinitely.
+  So a bonus move not taken within the window is lost.
+- **Danger lock:** a hero is in danger if a hostile monster is in view or
+  they lost hit points this turn or last. The window doesn't close on
+  them: the phase waits up to the danger lock. Once the normal window is
+  over, the hero in danger is told "Your allies are waiting for you." and
+  the others "Waiting for Bob (in danger)." (at most every 20 turns per
+  hero).
+- **Idle players:** a hero who has given up 3 moves in a row isn't waited
+  for at all (unless in danger) until their player types again. Without
+  this, one player stepping away would slow everyone else to a move per
+  window.
+- **Out of turn:** a player whose hero has had their move can still use
+  commands that take no time (`GENERALCMD`: inventory, `^P`, discoveries,
+  and so on); the scheduler peeks at the key without taking it
+  (`curses_mp_peek_key()`) to decide. Other keys stay queued for the
+  hero's next move, as type-ahead. `can_do_extcmd()` refuses anything
+  else as a safety net.
+- **Prompt timeout:** while scheduling is on, every key a command waits
+  for is limited to the prompt timeout (the danger lock for a hero in
+  danger); when it runs out the prompt gets ESC, and the player is told
+  "You took too long to answer." It doesn't apply once the game is over.
+- **No coroutines yet.** The game stays single-threaded: a command runs
+  to the end, prompts included, before anyone else's. With all heroes on
+  one level that's exactly the per-level lock of §4.2. The cost: while
+  one player has a prompt or menu open, even other players' free actions
+  wait (their keys are kept). Running those meanwhile, and letting other
+  levels go on, needs the coroutines; they're moved to M6, where heroes
+  can be on different levels.
+- **Settings** (seconds, fractions allowed; read once at startup):
+  `NETHACK_ACTION_WINDOW` (1.5), `NETHACK_DANGER_LOCK` (45),
+  `NETHACK_PROMPT_TIMEOUT` (30), and `NETHACK_TURNS=strict`.
+- **Fixes on the way:** extra heroes now get their starting movement, so
+  they no longer miss the first turn. `curses_getch()` is the single
+  place where the curses port waits for a key, so the timeout covers
+  every prompt.
+- **`#wizcalm`** (debug mode) makes every monster on the level peaceful,
+  so that the timing test isn't upset by a hostile wandering into view.
+- **Tests:** `test/timing.py` (two players, short settings): auto-wait
+  after the window, two actions in one turn, idle players, the prompt
+  timeout, the danger lock with its notices, free actions and queued
+  keys out of turn, and the lock running out. `server.py` and `party.py`
+  now run with `NETHACK_TURNS=strict`, since they check turn-by-turn
+  behavior. A three-player fuzz run (random keys from everyone at once,
+  0.2 s window) found no problems.
+- **To tune in playtests:** the window (1.5 s may be short for new
+  players; travel and running move a step per window until the other
+  players count as idle), the idle threshold, and whether a hero should
+  be told when they've given up a move.
 
 ---
 

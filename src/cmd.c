@@ -484,6 +484,12 @@ can_do_extcmd(const struct ext_func_tab *extcmd)
         return FALSE;
     } else if (iflags.debug_fuzzer && (ecflags & NOFUZZERCMD)) {
         return FALSE;
+    } else if (hero_free_only() && !(ecflags & (GENERALCMD | PREFIXCMD))
+               && extcmd->ef_funct != doextcmd) {
+        /* multiplayer: only commands that take no time can be used
+           before the hero's move comes up (hero_schedule()) */
+        You("will have to wait for your move to do that.");
+        return FALSE;
     }
     return TRUE;
 }
@@ -1954,6 +1960,8 @@ struct ext_func_tab extcmdlist[] = {
               wiz_debug_cmd_bury, IFBURIED | AUTOCOMPLETE | WIZMODECMD,
               NULL },
 #endif
+    { '\0',   "wizcalm", "make every monster on the level peaceful",
+              wiz_calm, IFBURIED | AUTOCOMPLETE | WIZMODECMD, NULL },
     { '\0',   "wizcast", "cast any spell",
               dowizcast, IFBURIED | WIZMODECMD, NULL },
     { '\0',   "wizcustom", "show customized glyphs",
@@ -2113,6 +2121,20 @@ extcmds_getentry(int i)
     if (i < 0 || i > extcmdlist_length)
         return 0;
     return &extcmdlist[i];
+}
+
+/* multiplayer: whether 'key' starts a command that takes no time, and
+   so can be used out of turn (hero_schedule()) */
+boolean
+key_runs_free_cmd(int key)
+{
+    struct Cmd_bind *bind;
+
+    if (key <= 0 || key > 0xFF)
+        return FALSE;
+    bind = cmdbind_get((uchar) key);
+    return (bind && bind->cmd
+            && (bind->cmd->flags & (GENERALCMD | PREFIXCMD)) == GENERALCMD);
 }
 
 /* get the command bound to a key */

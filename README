@@ -37,7 +37,18 @@ the host) with nh-connect:
 
 The game starts once everyone has joined; each player picks a character
 on their own terminal.  Access is controlled by the permissions of the
-socket's directory.  python3 test/server.py playground and
+socket's directory.
+
+A server game is played in real time: anyone can act whenever they're
+ready, and once someone has, the others have a short time to act in the
+same turn before they give up their move.  Heroes in danger are waited
+for longer, and an unanswered prompt is cancelled after a while.  The
+times, in seconds, can be set when starting the server:
+
+    NETHACK_ACTION_WINDOW=1.5   # time to act once someone has
+    NETHACK_DANGER_LOCK=45      # how long a hero in danger is waited for
+    NETHACK_PROMPT_TIMEOUT=30   # how long a prompt waits for an answer
+    NETHACK_TURNS=strict        # take turns in order instead  python3 test/server.py playground and
 test/serverdrop.py (a player losing their connection) check this
 automatically; they need the pyte module (pip install pyte).
 
@@ -45,8 +56,9 @@ The other tests (each takes the playground directory as its argument):
 test/allies.py (swapping places with and attacking an ally),
 test/blasts.py (rays and explosions reaching other heroes) and
 test/party.py (other players seeing what a hero does, #party, and the
-badly-hurt alert).  blasts.py and party.py use debug mode, so the user
-running them must be in WIZARDS in playground/sysconf.
+badly-hurt alert) and test/timing.py (real-time play).  blasts.py,
+party.py and timing.py use debug mode, so the user running them must be
+in WIZARDS in playground/sysconf.
 
 In a game with several heroes, #party lists everyone with their hit
 points, level and condition.

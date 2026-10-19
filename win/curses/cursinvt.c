@@ -7,6 +7,7 @@
 #include "hack.h"
 #include "wincurs.h"
 #include "cursinvt.h"
+#include "cursmisc.h"
 
 static void curs_invt_updated(WINDOW *);
 static unsigned pi_article_skip(const char *);
@@ -161,7 +162,7 @@ curs_scroll_invt(WINDOW *win UNUSED)
              menukeys, *menukeys ? " " : "", "Ret Esc");
 
     curses_count_window(qbuf);
-    ch = getch();
+    ch = curses_getch();
     curses_count_window((char *) 0);
     curses_clear_unhighlight_message_window();
 
